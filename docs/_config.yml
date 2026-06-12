@@ -1,6 +1,0 @@
-theme: jekyll-theme-cayman
-title: wtop
-description: A self-contained, single-binary system monitor for Windows — inspired by htop
-show_downloads: false
-github:
-  repository_url: https://github.com/michaelsanford/wtop
