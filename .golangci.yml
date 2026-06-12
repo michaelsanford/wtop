@@ -1,0 +1,46 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    # correctness
+    - errcheck
+    - govet
+    - staticcheck
+    - gosimple
+    - ineffassign
+    # style
+    - gofmt
+    - misspell
+    - unconvert
+    - unparam
+    # security
+    - gosec
+    # module hygiene
+    - gomodguard
+
+  settings:
+    gosec:
+      excludes:
+        # nvidia-smi and powershell.exe are hardcoded system binaries, not user input
+        - G204
+    gomodguard:
+      blocked:
+        modules:
+          - github.com/pkg/errors:
+              recommendations:
+                - errors
+                - fmt
+              reason: "use stdlib errors with %w wrapping"
+
+issues:
+  exclude-rules:
+    - path: "_test\\.go"
+      linters:
+        - gosec
+        - errcheck
+
+run:
+  timeout: 5m
+  build-tags:
+    - windows

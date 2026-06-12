@@ -1,0 +1,13 @@
+# Build outputs
+wtop
+wtop.exe
+wtop-*.exe
+*.bundle
+*-sbom.cdx.json
+
+# Go test cache
+*.test
+
+# IDE
+.vscode/
+.idea/
