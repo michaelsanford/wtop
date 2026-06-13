@@ -33,6 +33,13 @@ type MemSnapshot struct {
 	SwapUsedBytes   uint64
 	SwapTotalBytes  uint64
 	SwapPct         float64
+
+	// Windows memory composition (zero on non-Windows).
+	CommittedBytes   uint64 // virtual memory committed (RAM + page file in use)
+	CommitLimitBytes uint64 // commit ceiling (physical RAM + page file total)
+	ModifiedBytes    uint64 // modified page list — dirty pages awaiting write
+	StandbyBytes     uint64 // standby file cache (\Memory\Cache Bytes)
+	FreeBytes        uint64 // free + zero page list
 }
 
 // GPUSource indicates which backend provided GPU data.

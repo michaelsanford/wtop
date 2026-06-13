@@ -15,7 +15,7 @@ func collectMem() (MemSnapshot, error) {
 		sw = &mem.SwapMemoryStat{}
 	}
 
-	return MemSnapshot{
+	snap := MemSnapshot{
 		RAMUsedBytes:    vm.Used,
 		RAMTotalBytes:   vm.Total,
 		RAMPct:          vm.UsedPercent,
@@ -24,5 +24,7 @@ func collectMem() (MemSnapshot, error) {
 		SwapUsedBytes:   sw.Used,
 		SwapTotalBytes:  sw.Total,
 		SwapPct:         sw.UsedPercent,
-	}, nil
+	}
+	augmentMemSnapshot(&snap)
+	return snap, nil
 }
