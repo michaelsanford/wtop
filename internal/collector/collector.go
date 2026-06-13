@@ -71,6 +71,7 @@ type NetSnapshot struct {
 // ProcSnapshot holds per-process resource usage.
 type ProcSnapshot struct {
 	PID    int32
+	PPID   int32
 	Name   string
 	CPUPct float64
 	MemPct float32

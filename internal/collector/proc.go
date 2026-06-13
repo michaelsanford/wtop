@@ -21,6 +21,7 @@ func collectProcs() ([]ProcSnapshot, error) {
 			continue
 		}
 
+		ppid, _ := p.Ppid()
 		cpuPct, _ := p.CPUPercent()
 		memPct, _ := p.MemoryPercent()
 		memInfo, _ := p.MemoryInfo()
@@ -32,6 +33,7 @@ func collectProcs() ([]ProcSnapshot, error) {
 
 		snaps = append(snaps, ProcSnapshot{
 			PID:    p.Pid,
+			PPID:   ppid,
 			Name:   name,
 			CPUPct: cpuPct,
 			MemPct: memPct,

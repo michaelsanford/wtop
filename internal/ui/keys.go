@@ -9,6 +9,7 @@ type KeyMap struct {
 	Sort       key.Binding
 	SortInvert key.Binding
 	CycleGPU   key.Binding
+	Tree       key.Binding
 	Kill       key.Binding
 	Confirm    key.Binding
 	Cancel     key.Binding
@@ -35,6 +36,10 @@ var defaultKeyMap = KeyMap{
 	CycleGPU: key.NewBinding(
 		key.WithKeys("g"),
 		key.WithHelp("g", "cycle GPU"),
+	),
+	Tree: key.NewBinding(
+		key.WithKeys("t"),
+		key.WithHelp("t", "tree view"),
 	),
 	Kill: key.NewBinding(
 		key.WithKeys("x"),

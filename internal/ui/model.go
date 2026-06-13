@@ -70,6 +70,7 @@ type Model struct {
 	sortBy   SortField
 	sortAsc  bool
 	gpuIdx   int
+	treeView bool
 	tbl      table.Model
 	width    int
 	height   int
@@ -150,7 +151,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case snapshotMsg:
 		m.snap = msg.s
 		m.lastErr = nil
-		m.tbl.SetRows(buildSortedRows(msg.s.Procs, m.sortBy, m.sortAsc))
+		m.tbl.SetRows(m.buildRows())
 		// Recompute table height now that we know the actual core count.
 		cpuH := panels.CPUHeight(len(msg.s.CPU.CorePcts), m.width)
 		m.tableH = computeTableHeight(m.height, cpuH)
@@ -187,13 +188,17 @@ func (m Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.SortInvert):
 		m.sortAsc = !m.sortAsc
 		m.tbl.SetColumns(panels.BuildColumns(m.width, panels.SortColFor(int(m.sortBy)), m.sortAsc))
-		m.tbl.SetRows(buildSortedRows(m.snap.Procs, m.sortBy, m.sortAsc))
+		m.tbl.SetRows(m.buildRows())
 
 	case key.Matches(msg, m.keys.Sort):
 		m.sortBy = (m.sortBy + 1) % sortFieldCount
 		m.sortAsc = sortDefaultAsc[m.sortBy]
 		m.tbl.SetColumns(panels.BuildColumns(m.width, panels.SortColFor(int(m.sortBy)), m.sortAsc))
-		m.tbl.SetRows(buildSortedRows(m.snap.Procs, m.sortBy, m.sortAsc))
+		m.tbl.SetRows(m.buildRows())
+
+	case key.Matches(msg, m.keys.Tree):
+		m.treeView = !m.treeView
+		m.tbl.SetRows(m.buildRows())
 
 	case key.Matches(msg, m.keys.CycleGPU):
 		if n := len(m.snap.GPUs); n > 1 {
@@ -263,7 +268,11 @@ func (m Model) statusBar() string {
 	if len(m.snap.GPUs) > 1 {
 		gpuHint = "  [g] gpu"
 	}
-	hint := fmt.Sprintf("[q] quit  [↑↓/jk] scroll  [s] %s  [d] invert  [x] kill%s", sortLabel, gpuHint)
+	treeHint := "  [t] tree"
+	if m.treeView {
+		treeHint = "  [t] tree●"
+	}
+	hint := fmt.Sprintf("[q] quit  [↑↓/jk] scroll  [s] %s  [d] invert  [x] kill%s%s", sortLabel, gpuHint, treeHint)
 
 	errStr := ""
 	if m.lastErr != nil {
@@ -321,6 +330,15 @@ func (m Model) extendSelectedRow(view string) string {
 		Width(m.width).
 		Render(plain)
 	return strings.Join(lines, "\n")
+}
+
+// buildRows returns table rows for the current snapshot, using either flat or
+// tree layout depending on m.treeView.
+func (m Model) buildRows() []table.Row {
+	if m.treeView {
+		return panels.BuildTreeRows(m.snap.Procs, int(m.sortBy), m.sortAsc)
+	}
+	return buildSortedRows(m.snap.Procs, m.sortBy, m.sortAsc)
 }
 
 func buildSortedRows(procs []collector.ProcSnapshot, sortBy SortField, ascending bool) []table.Row {
