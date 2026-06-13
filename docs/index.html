@@ -445,7 +445,7 @@
       <div class="feat">
         <div class="feat-icon fi-p">◈</div>
         <h3>GPU</h3>
-        <p>Automatic detection: full telemetry (util, VRAM, temp, power, clocks, fan, P-state) from NVIDIA via <code>nvidia-smi</code>, or utilisation from AMD/Intel via <code>Get-Counter</code>.</p>
+        <p>Automatic detection: full telemetry (util, VRAM, temp, power, clocks, fan, P-state) from NVIDIA via <code>nvidia-smi</code>, or utilisation from AMD/Intel via <code>Get-Counter</code>. Loads in the background — other panels appear immediately while the GPU panel populates.</p>
       </div>
       <div class="feat">
         <div class="feat-icon fi-o">↕</div>
@@ -455,7 +455,7 @@
       <div class="feat">
         <div class="feat-icon fi-r">☰</div>
         <h3>Process list</h3>
-        <p>Top processes sortable by CPU%, memory, PID, or name. Kill any selected process with a confirmation step. Keyboard navigation throughout.</p>
+        <p>Top processes sortable by CPU%, memory, PID, or name. Toggle an htop-style tree view (<kbd>t</kbd>) to see parent&thinsp;→&thinsp;child relationships with box-drawing connectors. Kill any selected process with a confirmation step.</p>
       </div>
       <div class="feat">
         <div class="feat-icon fi-gg">◉</div>
@@ -491,6 +491,10 @@
         <tr>
           <td class="td-keys"><kbd>d</kbd></td>
           <td>Reverse sort order</td>
+        </tr>
+        <tr>
+          <td class="td-keys"><kbd>t</kbd></td>
+          <td>Toggle tree view &mdash; htop-style parent&thinsp;&rarr;&thinsp;child with box-drawing connectors; <code>tree●</code> indicator appears in the status bar when active</td>
         </tr>
         <tr>
           <td class="td-keys"><kbd>g</kbd></td>

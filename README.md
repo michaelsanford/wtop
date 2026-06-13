@@ -19,8 +19,8 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 
 - **CPU** — per-core utilisation bars with colour coding (green → yellow → red)
 - **Memory** — RAM and swap bars in GiB
-- **GPU** — best-effort: NVIDIA via `nvidia-smi`, AMD/Intel via PowerShell `Get-Counter`, or N/A
-- **Process list** — sortable by CPU%, memory, PID, or name; kill selected process
+- **GPU** — best-effort: NVIDIA via `nvidia-smi`, AMD/Intel via PowerShell `Get-Counter`; loads in the background on startup so other panels appear immediately
+- **Process list** — flat or htop-style tree view (`t`); sortable by CPU%, memory, PID, or name; kill selected process
 
 ## Keyboard shortcuts
 
@@ -30,6 +30,7 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 | `↑` / `↓`      | Scroll process list                           |
 | `s`            | Cycle sort column (CPU% → MEM% → PID → Name)  |
 | `d`            | Invert sort order                             |
+| `t`            | Toggle tree view (htop-style parent → child)  |
 | `x`            | Kill selected process (confirmation required) |
 | `g`            | Cycle GPUs (if multiple)                      |
 
