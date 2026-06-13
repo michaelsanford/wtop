@@ -1,6 +1,7 @@
 # `wtop`
 
 [![CI](https://github.com/michaelsanford/wtop/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/michaelsanford/wtop/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/github-code-scanning/codeql)
 [![Release](https://img.shields.io/github/v/release/michaelsanford/wtop)](https://github.com/michaelsanford/wtop/releases)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078d7?logo=windows&logoColor=white)](https://github.com/michaelsanford/wtop/releases)
 
