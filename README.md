@@ -65,6 +65,67 @@ Verify a release binary:
 gh attestation verify wtop-v0.1.0-windows-amd64.exe --repo michaelsanford/wtop
 ```
 
+`Verify-Release.ps1` automates all three checks against the latest release:
+
+```powershell
+❯ .\Verify-Release.ps1
+
+Checking prerequisites
+────────────────────────────────────────────────────────────
+  [PASS] gh
+  [PASS] cosign (cosign-windows-amd64)
+  [PASS] cyclonedx-cli (schema validation enabled)
+
+Fetching release metadata
+────────────────────────────────────────────────────────────
+  [PASS] Release: v1.1.0  (5 assets)
+
+Downloading assets to downloads/
+────────────────────────────────────────────────────────────
+         Cached:     wtop-v1.1.0-sbom.cdx.json
+         Cached:     wtop-v1.1.0-windows-amd64.exe
+         Cached:     wtop-v1.1.0-windows-amd64.exe.bundle
+         Cached:     wtop-v1.1.0-windows-arm64.exe
+         Cached:     wtop-v1.1.0-windows-arm64.exe.bundle
+  [PASS] All assets ready
+
+1/3  GitHub Attestation  (gh attestation verify)
+────────────────────────────────────────────────────────────
+         Subject: wtop-v1.1.0-windows-amd64.exe
+  [PASS] wtop-v1.1.0-windows-amd64.exe
+         Subject: wtop-v1.1.0-windows-arm64.exe
+  [PASS] wtop-v1.1.0-windows-arm64.exe
+
+2/3  Cosign Keyless Signature  (cosign-windows-amd64 verify-blob)
+─────────────────────────────────────────────────────────────────
+         Certificate identity: https://github.com/michaelsanford/wtop/.github/workflows/release.yml@refs/tags/v1.1.0
+         OIDC issuer:          https://token.actions.githubusercontent.com
+         Subject: wtop-v1.1.0-windows-amd64.exe
+  [PASS] wtop-v1.1.0-windows-amd64.exe
+         Subject: wtop-v1.1.0-windows-arm64.exe
+  [PASS] wtop-v1.1.0-windows-arm64.exe
+
+3/3  SBOM Integrity  (CycloneDX JSON)
+────────────────────────────────────────────────────────────
+         File: wtop-v1.1.0-sbom.cdx.json
+  [PASS] Valid JSON
+  [PASS] bomFormat = CycloneDX
+  [PASS] specVersion = 1.6
+  [PASS] metadata.component.version = v1.1.0
+  [PASS] 23 dependency components listed
+  [WARN] 23 of 23 components lack license data
+         Running: cyclonedx validate
+  [PASS] cyclonedx-cli schema validation
+
+Summary  —  v1.1.0
+────────────────────────────────────────────────────────────
+  [PASS] GitHub Attestation (gh attestation verify)
+  [PASS] Cosign Signature   (cosign verify-blob)
+  [PASS] SBOM Integrity     (CycloneDX)
+
+  Release v1.1.0 passed all verification checks.
+```
+
 ## License
 
 MIT

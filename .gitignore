@@ -1,3 +1,6 @@
+# Verification downloads
+downloads/
+
 # Build outputs
 wtop
 wtop.exe
