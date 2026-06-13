@@ -1,15 +1,17 @@
-# wtop
+# `wtop`
 
 [![CI](https://github.com/michaelsanford/wtop/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/michaelsanford/wtop)](https://github.com/michaelsanford/wtop/releases)
-[![License](https://img.shields.io/github/license/michaelsanford/wtop)](LICENSE)
-[![Go](https://img.shields.io/badge/go-1.26%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078d7?logo=windows&logoColor=white)](https://github.com/michaelsanford/wtop/releases)
+
+[![Go](https://img.shields.io/badge/go-1.26%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-4caf50)](https://github.com/michaelsanford/wtop/releases)
 [![Signed](https://img.shields.io/badge/signed-Sigstore-3f51b5)](https://github.com/michaelsanford/wtop/releases)
 [![Attestation](https://img.shields.io/badge/attestation-GitHub-24292e?logo=github&logoColor=white)](https://github.com/michaelsanford/wtop/attestations)
 
-A self-contained, single-binary system monitor for Windows — inspired by htop.
+[![License](https://img.shields.io/github/license/michaelsanford/wtop)](LICENSE)
+
+A self-contained, single-binary terminal system monitor for Windows, inspired by htop and written in Go.
 
 ![wtop screenshot](docs/wtop.png)
 
@@ -18,18 +20,18 @@ A self-contained, single-binary system monitor for Windows — inspired by htop.
 - **CPU** — per-core utilisation bars with colour coding (green → yellow → red)
 - **Memory** — RAM and swap bars in GiB
 - **GPU** — best-effort: NVIDIA via `nvidia-smi`, AMD/Intel via PowerShell `Get-Counter`, or N/A
-- **Network** — per-interface send/receive rates
 - **Process list** — sortable by CPU%, memory, PID, or name; kill selected process
 
 ## Keyboard shortcuts
 
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` | Scroll process list |
-| `s` | Cycle sort column (CPU% → MEM% → PID → Name) |
-| `x` | Kill selected process (confirmation required) |
-| `y` / `n` / `Esc` | Confirm / cancel kill |
-| `q` / `Ctrl+C` | Quit |
+| Key            | Action                                        |
+|----------------|-----------------------------------------------|
+| `q` / `Ctrl+C` | Quit                                          |
+| `↑` / `↓`      | Scroll process list                           |
+| `s`            | Cycle sort column (CPU% → MEM% → PID → Name)  |
+| `d`            | Invert sort order                             |
+| `x`            | Kill selected process (confirmation required) |
+| `g`            | Cycle GPUs (if multiple)                      |
 
 ## Download
 
