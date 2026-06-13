@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/michaelsanford/wtop/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/michaelsanford/wtop/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/github-code-scanning/codeql)
+[![Winget](https://github.com/michaelsanford/wtop/actions/workflows/winget.yml/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/winget.yml)
 [![Release](https://img.shields.io/github/v/release/michaelsanford/wtop)](https://github.com/michaelsanford/wtop/releases)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078d7?logo=windows&logoColor=white)](https://github.com/michaelsanford/wtop/releases)
 
@@ -41,7 +42,7 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 | `x`            | Kill selected process (confirmation required) |
 | `g`            | Cycle GPUs (if multiple)                      |
 
-## Download
+## Install
 
 The preferred way to get the latest stable release is [winget](https://learn.microsoft.com/windows/package-manager/):
 
@@ -49,7 +50,7 @@ The preferred way to get the latest stable release is [winget](https://learn.mic
 winget install michaelsanford.wtop
 ```
 
-Or grab the latest binary from the [Releases](../../releases) page. No installer needed — just run it.
+Or grab the latest binary from the [Releases](../../releases) page and run it directly:
 
 ```powershell
 .\wtop.exe
