@@ -7,7 +7,7 @@
 
   <!-- Security (meta where HTTP headers unavailable) -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'">
+        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://api.github.com; img-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
   <meta http-equiv="Permissions-Policy"
         content="accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()">
@@ -384,8 +384,8 @@
     inspired by htop. CPU, memory, GPU, network, and processes. Live. In your terminal.
   </p>
   <div class="hero-actions">
-    <a href="https://github.com/michaelsanford/wtop/releases" class="btn btn-primary">
-      ↓&nbsp; Download
+    <a id="dl-btn" href="https://github.com/michaelsanford/wtop/releases/latest" class="btn btn-primary">
+      ↓&nbsp; Download <span id="latest-version">Latest Release</span>
     </a>
     <a href="https://github.com/michaelsanford/wtop" class="btn btn-secondary">
       View on GitHub
@@ -611,6 +611,21 @@
     </ul>
   </div>
 </footer>
+
+<script>
+fetch('https://api.github.com/repos/michaelsanford/wtop/releases/latest')
+  .then(r => r.json())
+  .then(data => {
+    if (!data.tag_name) return;
+    const v = data.tag_name;
+    document.getElementById('latest-version').textContent = 'Latest: ' + v;
+    document.getElementById('dl-btn').href = 'https://github.com/michaelsanford/wtop/releases/tag/' + v;
+    document.querySelectorAll('pre').forEach(el => {
+      el.innerHTML = el.innerHTML.replaceAll('v1.0.0', v);
+    });
+  })
+  .catch(() => {});
+</script>
 
 </body>
 </html>
