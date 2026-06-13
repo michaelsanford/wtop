@@ -17,7 +17,7 @@ func Mem(snap collector.MemSnapshot, width, height int) string {
 		innerW = 10
 	}
 
-	// Fixed overhead per bar line: "RAM  [" (6) + " ] " (2) + "XX.XG/XX.XG" (11) + "  NNN%" (6) = 25
+	// Fixed overhead per bar line: "RAM  [" (6) + " NNN%]" (6) + "  " (2) + "XX.XG/XX.XG" (11) = 25
 	// Swap line has same overhead ("Swap [" = 6 chars too).
 	const lineOverhead = 25
 	barW := innerW - lineOverhead
@@ -35,8 +35,8 @@ func Mem(snap collector.MemSnapshot, width, height int) string {
 	)
 
 	lines := []string{
-		fmt.Sprintf("RAM  [%s]  %s  %3.0f%%", ramBar, fmtMemVal(snap.RAMUsedBytes, snap.RAMTotalBytes), snap.RAMPct),
-		fmt.Sprintf("Swap [%s]  %s  %3.0f%%", swapBar, fmtMemVal(snap.SwapUsedBytes, snap.SwapTotalBytes), snap.SwapPct),
+		fmt.Sprintf("RAM  [%s %3.0f%%]  %s", ramBar, snap.RAMPct, fmtMemVal(snap.RAMUsedBytes, snap.RAMTotalBytes)),
+		fmt.Sprintf("Swap [%s %3.0f%%]  %s", swapBar, snap.SwapPct, fmtMemVal(snap.SwapUsedBytes, snap.SwapTotalBytes)),
 		legend,
 	}
 
