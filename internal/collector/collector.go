@@ -3,6 +3,8 @@ package collector
 import (
 	"sync"
 	"time"
+
+	"github.com/shirou/gopsutil/v4/cpu"
 )
 
 // Snapshot is an immutable point-in-time capture of all system metrics.
@@ -87,13 +89,30 @@ type defaultCollector struct {
 
 	gpuLastQueried time.Time
 	gpuCache       []GPUSnapshot
+	gpuRefreshing  bool // true while a background GPU query is in flight
 }
 
-// New returns a new Collector.
+// New returns a new Collector and immediately begins pre-warming Windows PDH
+// CPU counters and the network baseline in the background, so the first
+// visible Collect() call returns quickly.
 func New() Collector {
-	return &defaultCollector{
+	c := &defaultCollector{
 		prevNetBytes: make(map[string][2]uint64),
 	}
+	go c.warmup()
+	return c
+}
+
+// warmup primes gopsutil's internal PDH CPU counters and captures the initial
+// network baseline.  It runs once in the background immediately after New().
+func (c *defaultCollector) warmup() {
+	cpu.Percent(0, true)  //nolint:errcheck
+	cpu.Percent(0, false) //nolint:errcheck
+	_, newBytes, newTime := collectNet(nil, time.Time{})
+	c.mu.Lock()
+	c.prevNetBytes = newBytes
+	c.prevNetTime = newTime
+	c.mu.Unlock()
 }
 
 type netResult struct {
@@ -103,12 +122,12 @@ type netResult struct {
 }
 
 // Collect gathers all sensors in parallel.  GPU metrics are refreshed at most
-// every 5 seconds (subprocess overhead); between refreshes the cached slice is
-// returned unchanged.
+// every 5 seconds (subprocess overhead); the refresh runs in the background so
+// it never blocks the other collectors.  On the first call the GPU snapshot is
+// empty and fills in ~3–5 s later.
 func (c *defaultCollector) Collect() (Snapshot, error) {
 	cpuCh := make(chan CPUSnapshot, 1)
 	memCh := make(chan MemSnapshot, 1)
-	gpuCh := make(chan []GPUSnapshot, 1)
 	netCh := make(chan netResult, 1)
 	procsCh := make(chan []ProcSnapshot, 1)
 
@@ -124,27 +143,28 @@ func (c *defaultCollector) Collect() (Snapshot, error) {
 		netCh <- netResult{net, newBytes, newTime}
 	}()
 
-	// GPU: refresh every 5 s; serve cached slice in between.
+	// GPU: refresh every 5 s in a background goroutine so the slow subprocess
+	// (PowerShell/nvidia-smi) never blocks CPU, Mem, Net, or Procs display.
+	// gpuRefreshing prevents a second goroutine launching before the first
+	// completes.
 	c.mu.Lock()
 	stale := time.Since(c.gpuLastQueried) > 5*time.Second
-	cached := c.gpuCache
-	c.mu.Unlock()
-	if stale {
+	gpus := c.gpuCache
+	if stale && !c.gpuRefreshing {
+		c.gpuRefreshing = true
 		go func() {
 			g := collectAllGPUs()
 			c.mu.Lock()
 			c.gpuCache = g
 			c.gpuLastQueried = time.Now()
+			c.gpuRefreshing = false
 			c.mu.Unlock()
-			gpuCh <- g
 		}()
-	} else {
-		gpuCh <- cached
 	}
+	c.mu.Unlock()
 
-	cpu := <-cpuCh
+	cpuSnap := <-cpuCh
 	mem := <-memCh
-	gpus := <-gpuCh
 	nr := <-netCh
 	procs := <-procsCh
 
@@ -155,7 +175,7 @@ func (c *defaultCollector) Collect() (Snapshot, error) {
 
 	return Snapshot{
 		CollectedAt: time.Now(),
-		CPU:         cpu,
+		CPU:         cpuSnap,
 		Mem:         mem,
 		GPUs:        gpus,
 		Net:         nr.net,

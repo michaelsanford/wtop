@@ -105,7 +105,9 @@ func New(coll collector.Collector) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tick()
+	// Collect immediately on startup rather than waiting for the first tick,
+	// so data appears as soon as the terminal is ready.
+	return tea.Batch(collectCmd(m.coll), tick())
 }
 
 func tick() tea.Cmd {

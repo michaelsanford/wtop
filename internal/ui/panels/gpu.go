@@ -26,7 +26,7 @@ func GPU(snap collector.GPUSnapshot, idx, total int, width, height int) string {
 
 	switch snap.Source {
 	case collector.GPUSourceNone:
-		lines = append(lines, lipgloss.NewStyle().Foreground(colorBorder).Render("N/A"))
+		lines = append(lines, lipgloss.NewStyle().Foreground(colorBorder).Render("[ loading… ]"))
 
 	case collector.GPUSourceNvidiaSmi:
 		lines = append(lines, gpuNameLine(snap.Name, idx, total, inner))
