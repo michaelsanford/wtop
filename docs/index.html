@@ -125,6 +125,25 @@
     }
     .hero-sub strong { color: var(--text); }
 
+    /* hero install — preferred latest stable release */
+    .hero-install {
+      max-width: 420px; margin: 0 auto 1.75rem; text-align: left;
+    }
+    .hero-install-label {
+      display: flex; align-items: center; gap: .45rem;
+      font-family: var(--mono); font-size: .72rem; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--green);
+      margin-bottom: .55rem; justify-content: center;
+    }
+    .hero-install-label::before { content: '⚡'; }
+    .hero-install .codeblock { text-align: left; }
+    .hero-install pre {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .9rem 1.15rem; font-family: var(--mono); font-size: .9rem;
+      line-height: 1.5; overflow-x: auto; color: var(--text);
+    }
+    .hero-install pre::before { content: '❯'; color: var(--green); }
+
     .hero-actions {
       display: flex; gap: .75rem; justify-content: center;
       flex-wrap: wrap; margin-bottom: 2.75rem;
@@ -383,6 +402,15 @@
     A <strong>self-contained, single-binary</strong> system monitor for Windows —
     inspired by htop. CPU, memory, GPU, network, and processes. Live. In your terminal.
   </p>
+  <div class="hero-install">
+    <div class="hero-install-label">Latest stable release</div>
+    <div class="codeblock">
+      <div class="codeblock-header">
+        <span class="codeblock-lang">PowerShell</span>
+      </div>
+      <pre><span class="tok-k">winget</span> install michaelsanford.wtop</pre>
+    </div>
+  </div>
   <div class="hero-actions">
     <a id="dl-btn" href="https://github.com/michaelsanford/wtop/releases/latest" class="btn btn-primary">
       ↓&nbsp; Download <span id="latest-version">Latest Release</span>

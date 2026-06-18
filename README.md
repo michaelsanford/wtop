@@ -16,6 +16,12 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 
 ![wtop screenshot](docs/wtop.png)
 
+> **⚡ Latest stable release** — install with [winget](https://learn.microsoft.com/windows/package-manager/):
+>
+> ```powershell
+> winget install michaelsanford.wtop
+> ```
+
 ## Features
 
 - **CPU** — per-core utilisation bars with colour coding (green → yellow → red)
@@ -37,7 +43,13 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 
 ## Download
 
-Grab the latest binary from the [Releases](../../releases) page. No installer needed — just run it.
+The preferred way to get the latest stable release is [winget](https://learn.microsoft.com/windows/package-manager/):
+
+```powershell
+winget install michaelsanford.wtop
+```
+
+Or grab the latest binary from the [Releases](../../releases) page. No installer needed — just run it.
 
 ```powershell
 .\wtop.exe
