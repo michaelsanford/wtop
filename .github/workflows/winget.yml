@@ -1,0 +1,22 @@
+name: Winget Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  winget-update:
+    name: Submit winget package update
+    runs-on: windows-latest
+
+    steps:
+      - name: Submit to winget
+        uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
+        with:
+          identifier: michaelsanford.wtop
+          installers-regex: '\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
