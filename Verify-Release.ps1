@@ -14,14 +14,30 @@
 .PARAMETER Force
     Re-download assets even if they already exist in downloads/.
 
+.PARAMETER WinGet
+    Instead of downloading the release, validate the binary that winget
+    installed (michaelsanford.wtop). Verifies GitHub build provenance and the
+    cosign keyless signature against the on-disk binary. The cosign .bundle is
+    downloaded to a temp location and deleted afterwards. The SBOM is not
+    checked in this mode because winget does not install it.
+
+.PARAMETER Version
+    Release version/tag used to select the cosign bundle in -WinGet mode.
+    Accepts either "v1.1.0" or "1.1.0". When omitted, the version is
+    auto-detected from `winget show`.
+
 .EXAMPLE
     .\verify-release.ps1
     .\verify-release.ps1 -Tag v0.5.0
+    .\verify-release.ps1 -WinGet
+    .\verify-release.ps1 -WinGet -Version v1.1.0
 #>
 param(
-    [string]$Repo  = "michaelsanford/wtop",
-    [string]$Tag   = "",
-    [switch]$Force
+    [string]$Repo    = "michaelsanford/wtop",
+    [string]$Tag     = "",
+    [switch]$Force,
+    [switch]$WinGet,
+    [string]$Version = ""
 )
 
 Set-StrictMode -Version Latest
@@ -73,19 +89,227 @@ if ($cosignCmd) {
     $prereqsFailed = $true
 }
 
+# winget is required only when validating a winget-installed binary.
+if ($WinGet) {
+    if (Get-Command "winget" -ErrorAction SilentlyContinue) {
+        Write-Pass "winget"
+    } else {
+        Write-Fail "winget not found"
+        Write-Info "winget ships with App Installer from the Microsoft Store"
+        $prereqsFailed = $true
+    }
+}
+
 # Optional: cyclonedx-cli enables formal JSON schema validation of the SBOM.
-$hasCycloneDX = [bool](Get-Command "cyclonedx" -ErrorAction SilentlyContinue)
-if ($hasCycloneDX) {
-    Write-Pass "cyclonedx-cli (schema validation enabled)"
-} else {
-    Write-Warn "cyclonedx-cli not found — skipping formal schema validation"
-    Write-Info "Install: winget install CycloneDX.CLI"
+# It is irrelevant in -WinGet mode (the SBOM is not installed by winget).
+$hasCycloneDX = $false
+if (-not $WinGet) {
+    $hasCycloneDX = [bool](Get-Command "cyclonedx" -ErrorAction SilentlyContinue)
+    if ($hasCycloneDX) {
+        Write-Pass "cyclonedx-cli (schema validation enabled)"
+    } else {
+        Write-Warn "cyclonedx-cli not found — skipping formal schema validation"
+        Write-Info "Install: winget install CycloneDX.CLI"
+    }
 }
 
 if ($prereqsFailed) {
     Write-Host ""
     Write-Host "  Install missing required tools and re-run." -ForegroundColor Red
     exit 1
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WinGet mode — validate the winget-installed binary instead of the release assets.
+# Verifies build provenance + cosign signature against the on-disk binary, never
+# the winget shim. SBOM is skipped (winget does not install it).
+# ═══════════════════════════════════════════════════════════════════════════════
+if ($WinGet) {
+    $packageId = "michaelsanford.wtop"
+
+    # Map a winget version (e.g. "1.1.0.0") or user input to a release tag ("v1.1.0").
+    function ConvertTo-ReleaseTag([string]$v) {
+        if (-not $v) { return $null }
+        $v = $v.Trim()
+        # winget appends a 4th component (1.1.0.0); the release tag is 3-part.
+        if ($v -match '^(\d+\.\d+\.\d+)\.0$') { $v = $Matches[1] }
+        if ($v -notmatch '^v') { $v = "v$v" }
+        return $v
+    }
+
+    # ── Confirm the package is installed ──────────────────────────────────────
+    Write-Header "Locating winget-installed $packageId"
+
+    $listOut = & winget list --id $packageId --exact --disable-interactivity 2>&1
+    if ($LASTEXITCODE -ne 0 -or ($listOut -join "`n") -notmatch [regex]::Escape($packageId)) {
+        Write-Fail "$packageId is not installed via winget"
+        Write-Info "Install: winget install $packageId"
+        exit 1
+    }
+    Write-Pass "$packageId is installed"
+
+    # Installed version, as `winget list` reports it (e.g. "1.1.0.0").
+    $installedVersion = $null
+    $listLine = $listOut | Where-Object { $_ -match [regex]::Escape($packageId) } | Select-Object -First 1
+    if ($listLine -match '(\d+\.\d+\.\d+(?:\.\d+)?)') {
+        $installedVersion = $Matches[1]
+        Write-Info "Installed version (winget list): $installedVersion"
+    }
+
+    # ── Resolve the release tag used to fetch the cosign bundle ───────────────
+    if ($Version) {
+        $Tag = ConvertTo-ReleaseTag $Version
+        Write-Info "Using -Version: $Tag"
+    } else {
+        # Auto-detect from `winget show`, which reports a clean 3-part version.
+        $showOut = & winget show --id $packageId --exact --disable-interactivity 2>&1
+        $showVersion = $null
+        if ($LASTEXITCODE -eq 0) {
+            $showLine = $showOut | Where-Object { $_ -match '^\s*Version:\s*(.+)$' } | Select-Object -First 1
+            if ($showLine -match '^\s*Version:\s*(.+)$') { $showVersion = $Matches[1].Trim() }
+        }
+        $source = if ($showVersion) { $showVersion } else { $installedVersion }
+        if (-not $source) {
+            Write-Fail "Could not determine the installed version; pass -Version explicitly."
+            exit 1
+        }
+        $Tag = ConvertTo-ReleaseTag $source
+        Write-Info "Auto-detected version (winget show): $Tag"
+    }
+
+    # Warn if the catalog/requested tag differs from what is actually installed.
+    if ($installedVersion) {
+        $installedTag = ConvertTo-ReleaseTag $installedVersion
+        if ($installedTag -ne $Tag) {
+            Write-Warn "Resolved tag $Tag differs from installed $installedTag — pass -Version to override."
+        }
+    }
+
+    # ── Locate the real binary (never the winget shim) ────────────────────────
+    $linksDir     = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links"
+    $packagesGlob = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages\$packageId*\*.exe"
+
+    $binaryPath = $null
+    $cmd = Get-Command "wtop" -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source) {
+        $item = Get-Item -LiteralPath $cmd.Source -ErrorAction SilentlyContinue
+        if ($item -and $item.LinkTarget) {
+            # Resolve the shim's symlink to its real target.
+            $target = $item.LinkTarget
+            if (-not [System.IO.Path]::IsPathRooted($target)) {
+                $target = Join-Path (Split-Path $item.FullName -Parent) $target
+            }
+            $resolved = Resolve-Path -LiteralPath $target -ErrorAction SilentlyContinue
+            if ($resolved) { $binaryPath = $resolved.Path }
+        } elseif ($item) {
+            $binaryPath = $item.FullName
+        }
+    }
+
+    # Reject the shim itself; fall back to scanning the Packages directory.
+    if ($binaryPath -and ($binaryPath -like "$linksDir*")) {
+        Write-Warn "Resolved path is the winget shim; scanning Packages directory instead."
+        $binaryPath = $null
+    }
+    if (-not $binaryPath) {
+        $candidate = Get-ChildItem -Path $packagesGlob -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($candidate) { $binaryPath = $candidate.FullName }
+    }
+
+    if (-not $binaryPath -or -not (Test-Path -LiteralPath $binaryPath)) {
+        Write-Fail "Could not locate the winget-installed wtop binary."
+        Write-Info "Looked under: $packagesGlob"
+        exit 1
+    }
+    if ($binaryPath -like "$linksDir*") {
+        Write-Fail "Refusing to validate the winget shim: $binaryPath"
+        exit 1
+    }
+    Write-Pass "Binary: $binaryPath"
+
+    # ── Determine architecture for bundle selection ───────────────────────────
+    switch ($env:PROCESSOR_ARCHITECTURE) {
+        "AMD64" { $arch = "amd64" }
+        "ARM64" { $arch = "arm64" }
+        default {
+            $arch = "amd64"
+            Write-Warn "Unrecognized architecture '$env:PROCESSOR_ARCHITECTURE' — assuming amd64"
+        }
+    }
+    $bundleName = "wtop-$Tag-windows-$arch.exe.bundle"
+    Write-Info "Architecture: $arch  (bundle: $bundleName)"
+
+    # ── Result tracking ───────────────────────────────────────────────────────
+    $attestationPassed = $true
+    $cosignPassed      = $true
+
+    # ── 1. GitHub Attestation ─────────────────────────────────────────────────
+    Write-Header "1/2  GitHub Attestation  (gh attestation verify)"
+    Write-Info "Subject: $binaryPath"
+    $out = & gh attestation verify $binaryPath --repo $Repo 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Pass "Build provenance verified"
+    } else {
+        Write-Fail "Attestation verification failed"
+        $out | ForEach-Object { Write-Host "         $_" -ForegroundColor DarkRed }
+        $attestationPassed = $false
+    }
+
+    # ── 2. Cosign keyless signature ───────────────────────────────────────────
+    Write-Header "2/2  Cosign Keyless Signature  ($cosignCmd verify-blob)"
+
+    $workflowRef = "https://github.com/$Repo/.github/workflows/release.yml@refs/tags/$Tag"
+    $oidcIssuer  = "https://token.actions.githubusercontent.com"
+    Write-Info "Certificate identity: $workflowRef"
+    Write-Info "OIDC issuer:          $oidcIssuer"
+
+    # The .bundle is not installed by winget; fetch it to a temp dir and remove it.
+    $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("wtop-verify-" + [System.Guid]::NewGuid().ToString("N"))
+    try {
+        New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
+        Write-Info "Downloading bundle: $bundleName"
+        & gh release download $Tag --repo $Repo --pattern $bundleName --dir $tmpDir --clobber 2>&1 | Out-Null
+        $bundlePath = Join-Path $tmpDir $bundleName
+
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $bundlePath)) {
+            Write-Fail "Could not download $bundleName from release $Tag"
+            $cosignPassed = $false
+        } else {
+            $out = & $cosignCmd verify-blob `
+                --bundle        $bundlePath `
+                --certificate-identity $workflowRef `
+                --certificate-oidc-issuer $oidcIssuer `
+                $binaryPath 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-Pass "Cosign signature verified"
+            } else {
+                Write-Fail "Cosign verification failed"
+                $out | ForEach-Object { Write-Host "         $_" -ForegroundColor DarkRed }
+                $cosignPassed = $false
+            }
+        }
+    } finally {
+        if (Test-Path -LiteralPath $tmpDir) {
+            Remove-Item -Recurse -Force -LiteralPath $tmpDir -ErrorAction SilentlyContinue
+        }
+    }
+
+    # ── Summary ───────────────────────────────────────────────────────────────
+    Write-Header "Summary  —  $Tag  (winget install)"
+
+    $overallPass = $true
+    if ($attestationPassed) { Write-Pass "GitHub Attestation (gh attestation verify)" } else { Write-Fail "GitHub Attestation (gh attestation verify)"; $overallPass = $false }
+    if ($cosignPassed)      { Write-Pass "Cosign Signature   (cosign verify-blob)"    } else { Write-Fail "Cosign Signature   (cosign verify-blob)";    $overallPass = $false }
+    Write-Info "SBOM Integrity     (skipped — not installed by winget)"
+
+    Write-Host ""
+    if ($overallPass) {
+        Write-Host "  winget-installed wtop $Tag passed all verification checks." -ForegroundColor Green
+        exit 0
+    } else {
+        Write-Host "  One or more checks failed. See details above." -ForegroundColor Red
+        exit 1
+    }
 }
 
 # ── Resolve release ───────────────────────────────────────────────────────────

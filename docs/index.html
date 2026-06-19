@@ -329,6 +329,8 @@
     .tok-k  { color: var(--accent); }
     .tok-s  { color: var(--green); }
     .tok-v  { color: var(--purple); }
+    .tok-ok { color: var(--green); }
+    .tok-m  { color: var(--muted); }
 
     /* ── SECURITY ────────────────────────────────────── */
     .sec-cards {
@@ -626,6 +628,56 @@
     --bundle wtop-v1.0.0-windows-amd64.exe.bundle \
     --certificate-identity-regexp <span class="tok-s">"https://github.com/michaelsanford/wtop"</span> \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com</pre>
+    </div>
+    <p class="col-label" style="margin-top:2rem;">Installed via winget? Verify the binary on disk in one command with <a href="https://github.com/michaelsanford/wtop/blob/main/Verify-Release.ps1">Verify-Release.ps1</a>:</p>
+    <div class="codeblock">
+      <div class="codeblock-header">
+        <span class="codeblock-lang">PowerShell &mdash; verify your winget-installed binary</span>
+      </div>
+      <pre><span class="tok-c"># Resolves the winget shim to the real binary and checks build</span>
+<span class="tok-c"># provenance + cosign signature; version auto-detected from `winget show`.</span>
+.\Verify-Release.ps1 <span class="tok-s">-WinGet</span>
+
+<span class="tok-c"># Or pin the release version explicitly:</span>
+.\Verify-Release.ps1 <span class="tok-s">-WinGet</span> <span class="tok-s">-Version</span> v1.0.0</pre>
+    </div>
+    <div class="codeblock" style="margin-top:1rem;">
+      <div class="codeblock-header">
+        <span class="codeblock-lang">Example output</span>
+      </div>
+      <pre>Checking prerequisites
+<span class="tok-c">────────────────────────────────────────────────────────────</span>
+  <span class="tok-ok">[PASS] gh</span>
+  <span class="tok-ok">[PASS] cosign (cosign-windows-amd64)</span>
+  <span class="tok-ok">[PASS] winget</span>
+
+Locating winget-installed michaelsanford.wtop
+<span class="tok-c">────────────────────────────────────────────────────────────</span>
+  <span class="tok-ok">[PASS] michaelsanford.wtop is installed</span>
+<span class="tok-m">         Installed version (winget list): 1.1.0.0</span>
+<span class="tok-m">         Auto-detected version (winget show): v1.1.0</span>
+  <span class="tok-ok">[PASS] Binary: C:\Users\you\AppData\Local\Microsoft\WinGet\Packages\michaelsanford.wtop_Microsoft.Winget.Source_8wekyb3d8bbwe\wtop.exe</span>
+<span class="tok-m">         Architecture: amd64  (bundle: wtop-v1.1.0-windows-amd64.exe.bundle)</span>
+
+1/2  GitHub Attestation  (gh attestation verify)
+<span class="tok-c">────────────────────────────────────────────────────────────</span>
+<span class="tok-m">         Subject: C:\Users\you\AppData\Local\Microsoft\WinGet\Packages\michaelsanford.wtop_Microsoft.Winget.Source_8wekyb3d8bbwe\wtop.exe</span>
+  <span class="tok-ok">[PASS] Build provenance verified</span>
+
+2/2  Cosign Keyless Signature  (cosign-windows-amd64 verify-blob)
+<span class="tok-c">─────────────────────────────────────────────────────────────────</span>
+<span class="tok-m">         Certificate identity: https://github.com/michaelsanford/wtop/.github/workflows/release.yml@refs/tags/v1.1.0</span>
+<span class="tok-m">         OIDC issuer:          https://token.actions.githubusercontent.com</span>
+<span class="tok-m">         Downloading bundle: wtop-v1.1.0-windows-amd64.exe.bundle</span>
+  <span class="tok-ok">[PASS] Cosign signature verified</span>
+
+Summary  —  v1.1.0  (winget install)
+<span class="tok-c">────────────────────────────────────────────────────────────</span>
+  <span class="tok-ok">[PASS] GitHub Attestation (gh attestation verify)</span>
+  <span class="tok-ok">[PASS] Cosign Signature   (cosign verify-blob)</span>
+<span class="tok-m">         SBOM Integrity     (skipped — not installed by winget)</span>
+
+  <span class="tok-ok">winget-installed wtop v1.1.0 passed all verification checks.</span></pre>
     </div>
   </div>
 </section>
