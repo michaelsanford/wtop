@@ -37,6 +37,10 @@ jobs:
 
       - name: Run golangci-lint
         if: matrix.os == 'ubuntu-latest'
+        env:
+          CGO_ENABLED: "0"
+          GOOS: windows
+          GOARCH: amd64
         run: golangci-lint run
 
       - name: go vet
