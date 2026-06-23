@@ -42,6 +42,5 @@ issues:
 
 run:
   timeout: 5m
-  go: '1.24'
   build-tags:
     - windows
