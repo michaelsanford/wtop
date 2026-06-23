@@ -30,3 +30,12 @@ func TestCollect_NoPanic(t *testing.T) {
 		t.Error("CollectedAt is unexpectedly old")
 	}
 }
+
+func BenchmarkCollectProcs(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = collectProcs()
+	}
+}
+
+
+
