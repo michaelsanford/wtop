@@ -9,7 +9,7 @@ import (
 )
 
 // Net renders the network panel showing per-interface I/O rates.
-func Net(snaps []collector.NetSnapshot, width int) string {
+func Net(snaps []collector.NetSnapshot, width, height int) string {
 	cyanColor := lipgloss.Color("14")
 	greenColor := lipgloss.Color("10")
 
@@ -30,12 +30,16 @@ func Net(snaps []collector.NetSnapshot, width int) string {
 		lines = append(lines, fmt.Sprintf("%s  %s %-12s  %s %s", name, upArrow, sent, downArrow, recv))
 	}
 
+	if height > 0 && len(lines) > height {
+		lines = lines[:height]
+	}
 	content := strings.Join(lines, "\n")
 	return lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(colorBorder).
 		Padding(0, 1).
-		Width(width).
+		Width(width - 2).
+		Height(height).
 		Render(content)
 }
 
