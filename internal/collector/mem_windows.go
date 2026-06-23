@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	modKernel32                 = windows.NewLazySystemDLL("kernel32.dll")
-	procGlobalMemoryStatusEx    = modKernel32.NewProc("GlobalMemoryStatusEx")
+	modKernel32              = windows.NewLazySystemDLL("kernel32.dll")
+	procGlobalMemoryStatusEx = modKernel32.NewProc("GlobalMemoryStatusEx")
 
 	modPdh                          = windows.NewLazySystemDLL("pdh.dll")
 	procPdhOpenQuery                = modPdh.NewProc("PdhOpenQuery")
@@ -66,7 +66,7 @@ func getMemPDH() *memPDHQuery {
 		add := func(path string) uintptr {
 			p, _ := windows.UTF16PtrFromString(path)
 			var h uintptr
-			procPdhAddEnglishCounterW.Call(q, uintptr(unsafe.Pointer(p)), 0, uintptr(unsafe.Pointer(&h)))
+			_, _, _ = procPdhAddEnglishCounterW.Call(q, uintptr(unsafe.Pointer(p)), 0, uintptr(unsafe.Pointer(&h)))
 			return h
 		}
 		m.hMod = add(`\Memory\Modified Page List Bytes`)

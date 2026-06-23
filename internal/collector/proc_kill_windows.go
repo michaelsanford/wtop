@@ -10,6 +10,9 @@ import (
 
 // KillProcess forcefully terminates a process by PID on Windows.
 func KillProcess(pid int32) error {
+	if pid < 0 {
+		return fmt.Errorf("invalid PID %d", pid)
+	}
 	handle, err := windows.OpenProcess(windows.PROCESS_TERMINATE, false, uint32(pid))
 	if err != nil {
 		return fmt.Errorf("open process %d: %w", pid, err)

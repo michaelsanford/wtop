@@ -18,7 +18,7 @@ permissions:
 jobs:
   ci:
     name: Build & Test
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -28,11 +28,13 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
+
+      - name: Run golangci-lint
+        run: golangci-lint run
+
       - name: go vet
-        env:
-          CGO_ENABLED: "0"
-          GOOS: windows
-          GOARCH: amd64
         run: go vet ./...
 
       - name: Build (windows/amd64)
@@ -51,3 +53,4 @@ jobs:
 
       - name: go test
         run: go test ./...
+

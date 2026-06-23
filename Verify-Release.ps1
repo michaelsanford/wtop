@@ -422,18 +422,45 @@ foreach ($bin in $binaries) {
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Header "3/3  SBOM Integrity  (CycloneDX JSON)"
 
-# NOTE: The release workflow does not cosign-sign the SBOM, so we cannot do
-# cosign verify-blob on it. Trust is implicit (HTTPS download from GitHub
-# Releases). Adding a .bundle for the SBOM in the release workflow would close
-# that gap.
-
 if (-not $sbomFile) {
     Write-Fail "No *-sbom.cdx.json found in downloads/"
     $sbomPassed = $false
 } else {
     Write-Info "File: $($sbomFile.Name)"
 
-    # a) Valid JSON
+    # a) GitHub Attestation
+    Write-Info "Verifying GitHub Attestation..."
+    $out = & gh attestation verify $sbomFile.FullName --repo $Repo 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Pass "GitHub Attestation verified"
+    } else {
+        Write-Fail "GitHub Attestation verification failed"
+        $out | ForEach-Object { Write-Host "         $_" -ForegroundColor DarkRed }
+        $sbomPassed = $false
+    }
+
+    # b) Cosign Keyless Signature
+    $sbomBundlePath = Join-Path $downloadDir "$($sbomFile.Name).bundle"
+    if (-not (Test-Path $sbomBundlePath)) {
+        Write-Fail "SBOM bundle file not found: $($sbomFile.Name).bundle"
+        $sbomPassed = $false
+    } else {
+        Write-Info "Verifying Cosign Signature..."
+        $out = & $cosignCmd verify-blob `
+            --bundle        $sbomBundlePath `
+            --certificate-identity $workflowRef `
+            --certificate-oidc-issuer $oidcIssuer `
+            $sbomFile.FullName 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Pass "Cosign signature verified"
+        } else {
+            Write-Fail "Cosign verification failed"
+            $out | ForEach-Object { Write-Host "         $_" -ForegroundColor DarkRed }
+            $sbomPassed = $false
+        }
+    }
+
+    # c) Valid JSON
     $sbom = $null
     try {
         $sbom = Get-Content $sbomFile.FullName -Raw | ConvertFrom-Json -ErrorAction Stop

@@ -46,9 +46,9 @@ type MemSnapshot struct {
 type GPUSource int
 
 const (
-	GPUSourceNone        GPUSource = iota
-	GPUSourceNvidiaSmi             // nvidia-smi subprocess
-	GPUSourcePowerShell            // PowerShell Get-Counter fallback
+	GPUSourceNone       GPUSource = iota
+	GPUSourceNvidiaSmi            // nvidia-smi subprocess
+	GPUSourcePowerShell           // PowerShell Get-Counter fallback
 )
 
 // GPUSnapshot holds best-effort GPU utilisation.

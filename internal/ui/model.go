@@ -135,6 +135,18 @@ func killCmd(pid int32) tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	// Forward all messages (e.g. mouse scroll, mouse click, native table keys)
+	// to the table component if we are not in a confirmation overlay.
+	if !m.confirming {
+		var tblCmd tea.Cmd
+		m.tbl, tblCmd = m.tbl.Update(msg)
+		if tblCmd != nil {
+			cmds = append(cmds, tblCmd)
+		}
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -143,10 +155,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tableH = computeTableHeight(m.height, cpuH)
 		m.tbl.SetHeight(m.tableH)
 		m.tbl.SetColumns(panels.BuildColumns(msg.Width, panels.SortColFor(int(m.sortBy)), m.sortAsc))
-		return m, nil
+		return m, tea.Batch(cmds...)
 
 	case tickMsg:
-		return m, tea.Batch(collectCmd(m.coll), tick())
+		return m, tea.Batch(append(cmds, collectCmd(m.coll), tick())...)
 
 	case snapshotMsg:
 		m.snap = msg.s
@@ -156,34 +168,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cpuH := panels.CPUHeight(len(msg.s.CPU.CorePcts), m.width)
 		m.tableH = computeTableHeight(m.height, cpuH)
 		m.tbl.SetHeight(m.tableH)
-		return m, nil
+		return m, tea.Batch(cmds...)
 
 	case snapshotErrMsg:
 		m.lastErr = msg.err
-		return m, nil
+		return m, tea.Batch(cmds...)
 
 	case killResultMsg:
-		return m, nil
+		return m, tea.Batch(cmds...)
 
 	case tea.KeyMsg:
+		var newModel tea.Model
+		var keyCmd tea.Cmd
 		if m.confirming {
-			return m.handleConfirmKey(msg)
+			newModel, keyCmd = m.handleConfirmKey(msg)
+		} else {
+			newModel, keyCmd = m.handleNormalKey(msg)
 		}
-		return m.handleNormalKey(msg)
+		m = newModel.(Model)
+		if keyCmd != nil {
+			cmds = append(cmds, keyCmd)
+		}
+		return m, tea.Batch(cmds...)
 	}
-	return m, nil
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
-
-	case key.Matches(msg, m.keys.Up):
-		m.tbl.MoveUp(1)
-
-	case key.Matches(msg, m.keys.Down):
-		m.tbl.MoveDown(1)
 
 	case key.Matches(msg, m.keys.SortInvert):
 		m.sortAsc = !m.sortAsc
@@ -211,9 +225,10 @@ func (m Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if cur >= 0 && cur < len(rows) {
 			row := rows[cur]
 			var pid int32
-			fmt.Sscanf(row[0], "%d", &pid)
-			m.confirming = true
-			m.confirm = confirmState{pid: pid, name: row[1]}
+			if _, err := fmt.Sscanf(row[0], "%d", &pid); err == nil {
+				m.confirming = true
+				m.confirm = confirmState{pid: pid, name: row[1]}
+			}
 		}
 	}
 	return m, nil
@@ -238,14 +253,28 @@ func (m Model) View() string {
 	// Row 1: CPU full width — height adapts to core count automatically
 	cpuRow := panels.CPU(m.snap.CPU, m.width)
 
-	// Row 2: Memory (left half) + GPU (right half)
-	memW := m.width / 2
-	gpuW := m.width - memW
-	gpuSnap, gpuIdx, gpuTotal := currentGPU(m.snap.GPUs, m.gpuIdx)
-	metricsRow := lipgloss.JoinHorizontal(lipgloss.Top,
-		panels.Mem(m.snap.Mem, memW, metricsPanelInnerH),
-		panels.GPU(gpuSnap, gpuIdx, gpuTotal, gpuW, metricsPanelInnerH),
-	)
+	// Row 2: Memory + GPU + Network layout
+	// Dynamic transition between 2-column and 3-column based on terminal width.
+	var metricsRow string
+	if m.width < 110 {
+		memW := m.width / 2
+		gpuW := m.width - memW
+		gpuSnap, gpuIdx, gpuTotal := currentGPU(m.snap.GPUs, m.gpuIdx)
+		metricsRow = lipgloss.JoinHorizontal(lipgloss.Top,
+			panels.Mem(m.snap.Mem, memW, metricsPanelInnerH),
+			panels.GPU(gpuSnap, gpuIdx, gpuTotal, gpuW, metricsPanelInnerH),
+		)
+	} else {
+		memW := m.width / 3
+		gpuW := m.width / 3
+		netW := m.width - memW - gpuW
+		gpuSnap, gpuIdx, gpuTotal := currentGPU(m.snap.GPUs, m.gpuIdx)
+		metricsRow = lipgloss.JoinHorizontal(lipgloss.Top,
+			panels.Mem(m.snap.Mem, memW, metricsPanelInnerH),
+			panels.GPU(gpuSnap, gpuIdx, gpuTotal, gpuW, metricsPanelInnerH),
+			panels.Net(m.snap.Net, netW, metricsPanelInnerH),
+		)
+	}
 
 	// Row 3: Process table — re-render the selected row at full terminal width so
 	// the highlight background isn't broken by per-cell ANSI resets.
@@ -272,7 +301,15 @@ func (m Model) statusBar() string {
 	if m.treeView {
 		treeHint = "  [t] tree●"
 	}
-	hint := fmt.Sprintf("[q] quit  [↑↓/jk] scroll  [s] %s  [d] invert  [x] kill%s%s", sortLabel, gpuHint, treeHint)
+
+	var hint string
+	if m.width >= 90 {
+		hint = fmt.Sprintf("[q] quit  [↑↓/jk] scroll  [s] %s  [d] invert  [x] kill%s%s", sortLabel, gpuHint, treeHint)
+	} else if m.width >= 70 {
+		hint = fmt.Sprintf("[q] quit  [s] %s  [d] inv  [x] kill%s%s", sortLabel, gpuHint, treeHint)
+	} else {
+		hint = fmt.Sprintf("[q] quit  [s] %s  [x] kill", sortLabels[m.sortBy])
+	}
 
 	errStr := ""
 	if m.lastErr != nil {
@@ -280,14 +317,28 @@ func (m Model) statusBar() string {
 	}
 
 	left := hint + errStr
-	right := fmt.Sprintf("%s  wtop %s", m.hostname, version.Version)
 
-	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right) - 2
+	var right string
+	// Only show hostname and version on wider screens
+	if m.width >= 80 {
+		right = fmt.Sprintf("%s  wtop %s", m.hostname, version.Version)
+	} else if m.width >= 50 {
+		right = "wtop " + version.Version
+	}
+
+	leftLen := lipgloss.Width(left)
+	rightLen := lipgloss.Width(right)
+
+	gap := m.width - leftLen - rightLen - 2
 	if gap < 1 {
 		gap = 1
 	}
 
 	bar := left + fmt.Sprintf("%*s", gap, "") + right
+	runes := []rune(bar)
+	if len(runes) > m.width {
+		bar = string(runes[:m.width])
+	}
 	return styleStatusBar.Width(m.width).Render(bar)
 }
 
@@ -308,21 +359,29 @@ func (m Model) extendSelectedRow(view string) string {
 	if m.width == 0 {
 		return view
 	}
-	cursor := m.tbl.Cursor()
-	height := m.tbl.Height()
-
-	// Compute the viewport's YOffset: the table keeps the cursor visible by
-	// scrolling so that yOffset <= cursor < yOffset+height.
-	yOffset := cursor - height + 1
-	if yOffset < 0 {
-		yOffset = 0
-	}
-	lineIdx := 2 + (cursor - yOffset) // 2 header lines precede the data rows
-
-	lines := strings.Split(view, "\n")
-	if lineIdx >= len(lines) {
+	selectedRow := m.tbl.SelectedRow()
+	if len(selectedRow) == 0 {
 		return view
 	}
+	selectedPID := selectedRow[0]
+
+	lines := strings.Split(view, "\n")
+	lineIdx := -1
+	for i := 2; i < len(lines); i++ {
+		plain := stripANSI(lines[i])
+		if len(plain) > 1+panels.PidW {
+			pidPart := strings.TrimSpace(plain[1 : 1+panels.PidW])
+			if pidPart == selectedPID {
+				lineIdx = i
+				break
+			}
+		}
+	}
+
+	if lineIdx == -1 || lineIdx >= len(lines) {
+		return view
+	}
+
 	plain := stripANSI(lines[lineIdx])
 	lines[lineIdx] = lipgloss.NewStyle().
 		Background(lipgloss.Color("57")).
