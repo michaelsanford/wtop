@@ -33,7 +33,7 @@ jobs:
 
       - name: golangci-lint
         if: matrix.os == 'ubuntu-latest'
-        uses: golangci/golangci-lint-action@ec5d18412c2a63d26db72f1577447b540392c13c # v6.0.1
+        uses: golangci/golangci-lint-action@v6
         with:
           version: v1.64.4
 
