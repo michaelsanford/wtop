@@ -36,6 +36,3 @@ func BenchmarkCollectProcs(b *testing.B) {
 		_, _ = collectProcs()
 	}
 }
-
-
-

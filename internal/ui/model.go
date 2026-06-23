@@ -225,9 +225,10 @@ func (m Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if cur >= 0 && cur < len(rows) {
 			row := rows[cur]
 			var pid int32
-			fmt.Sscanf(row[0], "%d", &pid)
-			m.confirming = true
-			m.confirm = confirmState{pid: pid, name: row[1]}
+			if _, err := fmt.Sscanf(row[0], "%d", &pid); err == nil {
+				m.confirming = true
+				m.confirm = confirmState{pid: pid, name: row[1]}
+			}
 		}
 	}
 	return m, nil

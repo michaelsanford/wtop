@@ -170,10 +170,10 @@ func queryNonNvidiaGPUs() []GPUSnapshot {
 		}
 
 		snaps = append(snaps, GPUSnapshot{
-			Name:       g.Name,
-			UtilPct:    util,
-			MemTotMiB:  g.MemTotMiB,
-			Source:     GPUSourcePowerShell, // Keep as GPUSourcePowerShell so panels render it as fallback GPU
+			Name:      g.Name,
+			UtilPct:   util,
+			MemTotMiB: g.MemTotMiB,
+			Source:    GPUSourcePowerShell, // Keep as GPUSourcePowerShell so panels render it as fallback GPU
 		})
 	}
 

@@ -28,7 +28,7 @@ func collectNet(
 		newBytes[c.Name] = [2]uint64{c.BytesSent, c.BytesRecv}
 
 		var sentPerSec, recvPerSec float64
-		if prev, ok := prevBytes[c.Name]; ok && prevTime.IsZero() == false {
+		if prev, ok := prevBytes[c.Name]; ok && !prevTime.IsZero() {
 			sentDelta := float64(c.BytesSent - prev[0])
 			recvDelta := float64(c.BytesRecv - prev[1])
 			if sentDelta < 0 {

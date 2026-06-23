@@ -22,9 +22,9 @@ const (
 // Fixed column widths. Name is the only variable column and fills remaining space.
 const (
 	PidW       = 6
-	cpuW       = 7  // "100.0" = 5 + padding
-	memPctW    = 7  // "100.0" = 5 + padding
-	memMBW     = 10 // "99999.9" = 7 + padding; header "MEM MB" = 6
+	cpuW       = 7                              // "100.0" = 5 + padding
+	memPctW    = 7                              // "100.0" = 5 + padding
+	memMBW     = 10                             // "99999.9" = 7 + padding; header "MEM MB" = 6
 	fixedTotal = PidW + cpuW + memPctW + memMBW // 30
 	numCols    = 5
 	// bubbles/table Cell and Header styles both have Padding(0,1): each column

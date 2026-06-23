@@ -82,4 +82,3 @@ func collectProcs() ([]ProcSnapshot, error) {
 
 	return snaps, nil
 }
-

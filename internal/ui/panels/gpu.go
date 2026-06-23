@@ -35,15 +35,15 @@ func GPU(snap collector.GPUSnapshot, idx, total int, width, height int) string {
 		magentaColor := lipgloss.Color("5")
 
 		utilBar := renderBar(snap.UtilPct, barW, purpleColor)
-		lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]","3D Util", utilBar, snap.UtilPct))
+		lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]", "3D Util", utilBar, snap.UtilPct))
 
 		memUtilBar := renderBar(snap.MemUtilPct, barW, magentaColor)
-		lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]","Mem Util", memUtilBar, snap.MemUtilPct))
+		lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]", "Mem Util", memUtilBar, snap.MemUtilPct))
 
 		if snap.MemTotMiB > 0 {
 			vramPct := float64(snap.MemUsedMiB) / float64(snap.MemTotMiB) * 100
 			vramBar := renderBar(vramPct, barW, lipgloss.Color("12"))
-			lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]","VRAM", vramBar, vramPct))
+			lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]", "VRAM", vramBar, vramPct))
 			lines = append(lines, fmt.Sprintf("           %d / %d MiB", snap.MemUsedMiB, snap.MemTotMiB))
 		}
 
@@ -71,7 +71,7 @@ func GPU(snap collector.GPUSnapshot, idx, total int, width, height int) string {
 
 		purpleColor := lipgloss.Color("13")
 		utilBar := renderBar(snap.UtilPct, barW, purpleColor)
-		lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]","3D Util", utilBar, snap.UtilPct))
+		lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]", "3D Util", utilBar, snap.UtilPct))
 		if snap.MemTotMiB > 0 {
 			lines = append(lines, fmt.Sprintf("  VRAM %d MiB total", snap.MemTotMiB))
 		}
