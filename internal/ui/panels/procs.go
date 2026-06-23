@@ -21,11 +21,11 @@ const (
 
 // Fixed column widths. Name is the only variable column and fills remaining space.
 const (
-	pidW       = 6
+	PidW       = 6
 	cpuW       = 7  // "100.0" = 5 + padding
 	memPctW    = 7  // "100.0" = 5 + padding
 	memMBW     = 10 // "99999.9" = 7 + padding; header "MEM MB" = 6
-	fixedTotal = pidW + cpuW + memPctW + memMBW // 30
+	fixedTotal = PidW + cpuW + memPctW + memMBW // 30
 	numCols    = 5
 	// bubbles/table Cell and Header styles both have Padding(0,1): each column
 	// renders 2 chars wider than col.Width.  Subtract the overhead from the budget.
@@ -50,7 +50,7 @@ func BuildColumns(termW, sortCol int, ascending bool) []table.Column {
 	}
 
 	return []table.Column{
-		{Title: titles[ColPID], Width: pidW},
+		{Title: titles[ColPID], Width: PidW},
 		{Title: titles[ColName], Width: nameW},
 		{Title: titles[ColCPU], Width: cpuW},
 		{Title: titles[ColMemPct], Width: memPctW},

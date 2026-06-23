@@ -308,21 +308,29 @@ func (m Model) extendSelectedRow(view string) string {
 	if m.width == 0 {
 		return view
 	}
-	cursor := m.tbl.Cursor()
-	height := m.tbl.Height()
-
-	// Compute the viewport's YOffset: the table keeps the cursor visible by
-	// scrolling so that yOffset <= cursor < yOffset+height.
-	yOffset := cursor - height + 1
-	if yOffset < 0 {
-		yOffset = 0
-	}
-	lineIdx := 2 + (cursor - yOffset) // 2 header lines precede the data rows
-
-	lines := strings.Split(view, "\n")
-	if lineIdx >= len(lines) {
+	selectedRow := m.tbl.SelectedRow()
+	if len(selectedRow) == 0 {
 		return view
 	}
+	selectedPID := selectedRow[0]
+
+	lines := strings.Split(view, "\n")
+	lineIdx := -1
+	for i := 2; i < len(lines); i++ {
+		plain := stripANSI(lines[i])
+		if len(plain) > 1+panels.PidW {
+			pidPart := strings.TrimSpace(plain[1 : 1+panels.PidW])
+			if pidPart == selectedPID {
+				lineIdx = i
+				break
+			}
+		}
+	}
+
+	if lineIdx == -1 || lineIdx >= len(lines) {
+		return view
+	}
+
 	plain := stripANSI(lines[lineIdx])
 	lines[lineIdx] = lipgloss.NewStyle().
 		Background(lipgloss.Color("57")).
