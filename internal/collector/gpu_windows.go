@@ -71,11 +71,11 @@ func getGpuPDH() *gpuPDHQuery {
 		path, _ := windows.UTF16PtrFromString(`\GPU Engine(*engtype_3D)\Utilization Percentage`)
 		var hCounter uintptr
 		if r, _, _ := procPdhAddEnglishCounterW.Call(q, uintptr(unsafe.Pointer(path)), 0, uintptr(unsafe.Pointer(&hCounter))); r != 0 {
-			procPdhCloseQuery.Call(q)
+			_, _, _ = procPdhCloseQuery.Call(q)
 			return
 		}
 		// Prime the counter
-		procPdhCollectQueryData.Call(q)
+		_, _, _ = procPdhCollectQueryData.Call(q)
 		gpuPDHInst = &gpuPDHQuery{query: q, hCounter: hCounter}
 	})
 	return gpuPDHInst

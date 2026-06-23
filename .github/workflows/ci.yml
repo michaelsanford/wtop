@@ -17,11 +17,8 @@ permissions:
 
 jobs:
   ci:
-    name: Build & Test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+    name: Build & Test (windows-latest)
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -32,22 +29,12 @@ jobs:
           cache: true
 
       - name: Install golangci-lint
-        if: matrix.os == 'ubuntu-latest'
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
 
       - name: Run golangci-lint
-        if: matrix.os == 'ubuntu-latest'
-        env:
-          CGO_ENABLED: "0"
-          GOOS: windows
-          GOARCH: amd64
         run: golangci-lint run
 
       - name: go vet
-        env:
-          CGO_ENABLED: "0"
-          GOOS: windows
-          GOARCH: amd64
         run: go vet ./...
 
       - name: Build (windows/amd64)
@@ -66,3 +53,4 @@ jobs:
 
       - name: go test
         run: go test ./...
+

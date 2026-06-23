@@ -26,4 +26,3 @@ var (
 				Bold(true).
 				Foreground(colorYellow)
 )
-
