@@ -34,8 +34,6 @@ jobs:
       - name: golangci-lint
         if: matrix.os == 'ubuntu-latest'
         uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.64.4
 
       - name: go vet
         env:
