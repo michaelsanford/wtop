@@ -28,6 +28,7 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 - **CPU** — per-core utilisation bars with colour coding (green → yellow → red)
 - **Memory** — RAM and swap bars in GiB
 - **GPU** — best-effort: NVIDIA via `nvidia-smi`, AMD/Intel via PowerShell `Get-Counter`; loads in the background on startup so other panels appear immediately
+- **Network** — shows per-interface send/receive rates in real time; loopback and zero-traffic interfaces are hidden automatically (automatically displays when the terminal is 110+ columns wide)
 - **Process list** — flat or htop-style tree view (`t`); sortable by CPU%, memory, PID, or name; kill selected process
 
 ## Keyboard shortcuts
