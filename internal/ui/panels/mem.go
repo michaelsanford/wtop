@@ -92,38 +92,7 @@ func fmtMemVal(used, total uint64) string {
 
 // renderMemCompositionBar draws In Use (green) | Modified (orange) | Standby (blue) | Free (░).
 func renderMemCompositionBar(inUse, modified, standby, total uint64, width int) string {
-	if total == 0 || width <= 0 {
-		return strings.Repeat("░", width)
-	}
-
-	toChars := func(bytes uint64) int {
-		n := int(float64(bytes) / float64(total) * float64(width))
-		if n < 0 {
-			return 0
-		}
-		return n
-	}
-
-	inUseN := toChars(inUse)
-	modN := toChars(modified)
-	stbyN := toChars(standby)
-
-	if inUseN+modN+stbyN > width {
-		excess := inUseN + modN + stbyN - width
-		if stbyN >= excess {
-			stbyN -= excess
-		} else {
-			excess -= stbyN
-			stbyN = 0
-			if modN >= excess {
-				modN -= excess
-			} else {
-				modN = 0
-			}
-		}
-	}
-	freeN := width - inUseN - modN - stbyN
-
+	inUseN, modN, stbyN, freeN := scaleComposition(inUse, modified, standby, total, width)
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(strings.Repeat("█", inUseN)) +
 		lipgloss.NewStyle().Foreground(lipgloss.Color("208")).Render(strings.Repeat("█", modN)) +
 		lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Render(strings.Repeat("█", stbyN)) +
@@ -133,10 +102,19 @@ func renderMemCompositionBar(inUse, modified, standby, total uint64, width int) 
 // renderMemBar draws Used (green) | Cached (blue) | Buffers (yellow) | Free (░).
 // Used on Linux/non-Windows where the composition data is not available.
 func renderMemBar(used, cached, buffers, total uint64, width int) string {
-	if total == 0 || width <= 0 {
-		return strings.Repeat("░", width)
-	}
+	usedN, cachedN, bufN, freeN := scaleComposition(used, cached, buffers, total, width)
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(strings.Repeat("█", usedN)) +
+		lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Render(strings.Repeat("█", cachedN)) +
+		lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(strings.Repeat("█", bufN)) +
+		strings.Repeat("░", freeN)
+}
 
+// scaleComposition splits width into three counts representing val1, val2, and val3.
+// It ensures the total sum does not exceed width, scaling down from right-to-left if it does.
+func scaleComposition(val1, val2, val3, total uint64, width int) (int, int, int, int) {
+	if total == 0 || width <= 0 {
+		return 0, 0, 0, width
+	}
 	toChars := func(bytes uint64) int {
 		n := int(float64(bytes) / float64(total) * float64(width))
 		if n < 0 {
@@ -145,28 +123,24 @@ func renderMemBar(used, cached, buffers, total uint64, width int) string {
 		return n
 	}
 
-	usedN := toChars(used)
-	cachedN := toChars(cached)
-	bufN := toChars(buffers)
+	n1 := toChars(val1)
+	n2 := toChars(val2)
+	n3 := toChars(val3)
 
-	if usedN+cachedN+bufN > width {
-		excess := usedN + cachedN + bufN - width
-		if bufN >= excess {
-			bufN -= excess
+	if n1+n2+n3 > width {
+		excess := n1 + n2 + n3 - width
+		if n3 >= excess {
+			n3 -= excess
 		} else {
-			excess -= bufN
-			bufN = 0
-			if cachedN >= excess {
-				cachedN -= excess
+			excess -= n3
+			n3 = 0
+			if n2 >= excess {
+				n2 -= excess
 			} else {
-				cachedN = 0
+				n2 = 0
 			}
 		}
 	}
-	freeN := width - usedN - cachedN - bufN
-
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(strings.Repeat("█", usedN)) +
-		lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Render(strings.Repeat("█", cachedN)) +
-		lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(strings.Repeat("█", bufN)) +
-		strings.Repeat("░", freeN)
+	freeN := width - n1 - n2 - n3
+	return n1, n2, n3, freeN
 }
