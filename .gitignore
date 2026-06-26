@@ -14,3 +14,4 @@ wtop-*.exe
 # IDE
 .vscode/
 .idea/
+*_qodana.sarif.json
