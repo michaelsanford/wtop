@@ -114,8 +114,8 @@ func New() Collector {
 // warmup primes gopsutil's internal PDH CPU counters and captures the initial
 // network baseline.  It runs once in the background immediately after New().
 func (c *defaultCollector) warmup() {
-	cpu.Percent(0, true)  //nolint:errcheck
-	cpu.Percent(0, false) //nolint:errcheck
+	_, _ = cpu.Percent(0, true)
+	_, _ = cpu.Percent(0, false)
 	_, newBytes, newTime := collectNet(nil, time.Time{})
 	c.mu.Lock()
 	c.prevNetBytes = newBytes

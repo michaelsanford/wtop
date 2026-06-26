@@ -20,7 +20,7 @@ func main() {
 	)
 
 	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "wtop: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "wtop: %v\n", err)
 		os.Exit(1)
 	}
 }

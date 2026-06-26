@@ -2,4 +2,4 @@
 
 package collector
 
-func augmentMemSnapshot(s *MemSnapshot) {}
+func augmentMemSnapshot(_ *MemSnapshot) {}
