@@ -102,13 +102,7 @@ func CPU(snap collector.CPUSnapshot, width int) string {
 			lipgloss.NewStyle().Bold(true).Foreground(colorWhite).Render("Avg "),
 			aggrBar, snap.AggrPct))
 
-	content := strings.Join(lines, "\n")
-	return lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(colorBorder).
-		Padding(0, 1).
-		Width(width - 2).
-		Render(content)
+	return RenderPanel(lines, width, 0)
 }
 
 // renderCoreCell formats one core as "NN[████░ NNN%]" in exactly cellW visible chars.

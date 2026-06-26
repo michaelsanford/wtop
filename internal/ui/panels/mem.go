@@ -47,8 +47,8 @@ func Mem(snap collector.MemSnapshot, width, height int) string {
 		}
 
 		ramBar := renderMemCompositionBar(inUse, snap.ModifiedBytes, snap.StandbyBytes, snap.RAMTotalBytes, barW)
-		cmtBar := renderBar(commitPct, barW, lipgloss.Color("13"))
-		swapBar := renderBar(snap.SwapPct, barW, lipgloss.Color("14"))
+		cmtBar := renderBar(commitPct, barW, "13")
+		swapBar := renderBar(snap.SwapPct, barW, "14")
 
 		legend = fmt.Sprintf("%s in use  %s modified  %s standby",
 			lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render("█"),
@@ -65,7 +65,7 @@ func Mem(snap collector.MemSnapshot, width, height int) string {
 	} else {
 		// ── Linux / other: used | cached | buffers ───────────────────────────
 		ramBar := renderMemBar(snap.RAMUsedBytes, snap.RAMCachedBytes, snap.RAMBuffersBytes, snap.RAMTotalBytes, barW)
-		swapBar := renderBar(snap.SwapPct, barW, lipgloss.Color("14"))
+		swapBar := renderBar(snap.SwapPct, barW, "14")
 
 		legend = fmt.Sprintf("%s used  %s cached  %s buffers",
 			lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render("█"),
@@ -80,14 +80,7 @@ func Mem(snap collector.MemSnapshot, width, height int) string {
 		}
 	}
 
-	content := strings.Join(lines, "\n")
-	return lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(colorBorder).
-		Padding(0, 1).
-		Width(width - 2).
-		Height(height).
-		Render(content)
+	return RenderPanel(lines, width, height)
 }
 
 // fmtMemVal returns "XX.XG/XX.XG" — used/total in GiB, always 13 chars wide.

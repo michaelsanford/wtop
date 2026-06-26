@@ -2,7 +2,6 @@ package panels
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/michaelsanford/wtop/internal/collector"
@@ -42,7 +41,7 @@ func GPU(snap collector.GPUSnapshot, idx, total int, width, height int) string {
 
 		if snap.MemTotMiB > 0 {
 			vramPct := float64(snap.MemUsedMiB) / float64(snap.MemTotMiB) * 100
-			vramBar := renderBar(vramPct, barW, lipgloss.Color("12"))
+			vramBar := renderBar(vramPct, barW, "12")
 			lines = append(lines, fmt.Sprintf("%-10s [%s %3.0f%%]", "VRAM", vramBar, vramPct))
 			lines = append(lines, fmt.Sprintf("           %d / %d MiB", snap.MemUsedMiB, snap.MemTotMiB))
 		}
@@ -78,17 +77,7 @@ func GPU(snap collector.GPUSnapshot, idx, total int, width, height int) string {
 		lines = append(lines, lipgloss.NewStyle().Foreground(colorBorder).Render("(limited: Get-Counter)"))
 	}
 
-	if height > 0 && len(lines) > height {
-		lines = lines[:height]
-	}
-	content := strings.Join(lines, "\n")
-	return lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(colorBorder).
-		Padding(0, 1).
-		Width(width - 2).
-		Height(height).
-		Render(content)
+	return RenderPanel(lines, width, height)
 }
 
 // gpuNameLine returns the GPU name line, appending a dim "n/N" indicator when

@@ -2,7 +2,6 @@ package panels
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/michaelsanford/wtop/internal/collector"
@@ -30,17 +29,7 @@ func Net(snaps []collector.NetSnapshot, width, height int) string {
 		lines = append(lines, fmt.Sprintf("%s  %s %-12s  %s %s", name, upArrow, sent, downArrow, recv))
 	}
 
-	if height > 0 && len(lines) > height {
-		lines = lines[:height]
-	}
-	content := strings.Join(lines, "\n")
-	return lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(colorBorder).
-		Padding(0, 1).
-		Width(width - 2).
-		Height(height).
-		Render(content)
+	return RenderPanel(lines, width, height)
 }
 
 func fmtBytesPerSec(bps float64) string {
