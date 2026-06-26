@@ -185,11 +185,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			newModel, keyCmd = m.handleNormalKey(msg)
 		}
-		m = newModel.(Model)
+		resModel := newModel.(Model)
 		if keyCmd != nil {
 			cmds = append(cmds, keyCmd)
 		}
-		return m, tea.Batch(cmds...)
+		return resModel, tea.Batch(cmds...)
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -433,6 +433,8 @@ func buildSortedRows(procs []collector.ProcSnapshot, sortBy SortField, ascending
 			}
 			return sorted[i].Name > sorted[j].Name
 		})
+	default:
+		// No default sort, leave sorted as-is
 	}
 
 	return panels.BuildRows(sorted)
