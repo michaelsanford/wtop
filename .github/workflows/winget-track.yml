@@ -1,0 +1,176 @@
+name: Winget track
+
+# Reconciles the tracking issues opened by winget.yml against the state of their
+# downstream microsoft/winget-pkgs PRs: promotes drafts once Microsoft's own
+# validation passes, mirrors labels and validation failures, and closes the
+# tracker when the PR is merged or abandoned.
+
+on:
+  schedule:
+    - cron: '0 * * * *' # hourly
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  PACKAGE_ID: michaelsanford.wtop
+  WINGET_REPO: microsoft/winget-pkgs
+  # Posted verbatim when a draft is promoted, and matched verbatim to decide
+  # whether a non-draft PR was promoted deliberately.  Changing one side without
+  # the other makes the re-draft guard misfire.
+  READY_MARKER: '🚀 **Downstream PR checks passed:**'
+
+jobs:
+  close:
+    name: Reconcile winget trackers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve, promote and close winget trackers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Fed by process substitution rather than a pipe so the loop body runs in
+          # this shell and can keep state across iterations.
+          while read -r row; do
+            _jq() { echo "$row" | base64 -d | jq -r "$1"; }
+            NUM=$(_jq '.number')
+            TITLE=$(_jq '.title')
+            BODY=$(_jq '.body')
+
+            # Contributor mentions were recorded in the body when the tracker opened
+            MENTIONS=$(echo "$BODY" \
+              | grep -ioE 'Contributors to this release:.*' \
+              | sed -E 's/.*release:[[:space:]]*//I' || true)
+            [ -z "$MENTIONS" ] && MENTIONS="@michaelsanford"
+
+            # Prefer the PR number recorded in the body; otherwise re-search by version
+            PR_NUM=$(echo "$BODY" | grep -ioE 'winget-pkgs/pull/[0-9]+' | grep -oE '[0-9]+' | head -1 || true)
+            if [ -z "$PR_NUM" ]; then
+              TAG=$(echo "$TITLE" | grep -oE 'v?[0-9][0-9A-Za-z.+-]*$' || true)
+              VERSION="${TAG#v}"
+              if [ -n "$VERSION" ]; then
+                TITLE_MATCH="${PACKAGE_ID} version ${VERSION}"
+
+                # Real-time pulls endpoint first; the search index lags behind it
+                PR_NUM=$(gh api -X GET "repos/${WINGET_REPO}/pulls" -f per_page=100 \
+                  --jq "[.[] | select(.title | contains(\"${TITLE_MATCH}\"))][0].number // empty" 2>/dev/null || true)
+
+                if [ -z "$PR_NUM" ]; then
+                  PR_NUM=$(gh api -X GET search/issues \
+                    -f q="repo:${WINGET_REPO} in:title ${TITLE_MATCH} type:pr" \
+                    --jq '.items[0].html_url // empty' | grep -oE '[0-9]+$' || true)
+                fi
+              fi
+
+              # Backfill the link so later runs skip the search entirely
+              if [ -n "$PR_NUM" ] && echo "$BODY" | grep -qF "Downstream PR could not be located automatically"; then
+                NEW_BODY=$(echo "$BODY" | sed "s|Downstream PR could not be located automatically.*|Downstream PR: https://github.com/${WINGET_REPO}/pull/${PR_NUM}|")
+                gh issue edit "$NUM" --body "$NEW_BODY" --repo "$REPO"
+              fi
+            fi
+
+            if [ -z "$PR_NUM" ]; then
+              echo "Issue #$NUM: no downstream PR located yet, leaving open."
+              continue
+            fi
+
+            INFO=$(gh api "repos/${WINGET_REPO}/pulls/${PR_NUM}")
+            MERGED=$(echo "$INFO" | jq -r '.merged')
+            STATE=$(echo "$INFO" | jq -r '.state')
+
+            if [ "$MERGED" = "true" ]; then
+              gh issue close "$NUM" --repo "$REPO" --reason completed \
+                --comment "🎉 Merged downstream in ${WINGET_REPO}#${PR_NUM}. Thanks ${MENTIONS}! Closing this tracker."
+              echo "Issue #$NUM: closed (PR #$PR_NUM merged)."
+              continue
+            fi
+
+            if [ "$STATE" = "closed" ]; then
+              gh issue close "$NUM" --repo "$REPO" --reason "not planned" \
+                --comment "⚠️ Downstream PR ${WINGET_REPO}#${PR_NUM} was closed without merging. cc ${MENTIONS} — please verify. Closing this tracker."
+              echo "Issue #$NUM: closed (PR #$PR_NUM closed without merge)."
+              continue
+            fi
+
+            echo "Issue #$NUM: PR #$PR_NUM still open, checking labels and comments..."
+
+            # New-Manifest is present on every submission and carries no signal
+            LABELS=$(echo "$INFO" | jq -r '.labels[].name | select(. != "New-Manifest")' 2>/dev/null || true)
+
+            # Existing tracker comments, used to keep every notification idempotent
+            EXISTING_COMMENTS=$(gh issue view "$NUM" --repo "$REPO" --json comments --jq '.comments[].body' 2>/dev/null || true)
+
+            DRAFT=$(echo "$INFO" | jq -r '.draft')
+            HAS_AZURE=$(echo "$LABELS" | grep -Fx "Azure-Pipeline-Passed" || true)
+            HAS_VALIDATION=$(echo "$LABELS" | grep -Fx "Validation-Completed" || true)
+            VALIDATED=""
+            [ -n "$HAS_AZURE" ] && [ -n "$HAS_VALIDATION" ] && VALIDATED="yes"
+
+            if [ "$DRAFT" = "true" ] && [ -n "$VALIDATED" ]; then
+              echo "Issue #$NUM: validation labels present, marking PR #$PR_NUM ready for review..."
+              if GH_TOKEN="$WINGET_TOKEN" gh pr ready "$PR_NUM" --repo "$WINGET_REPO"; then
+                READY_COMMENT="${READY_MARKER} Marking ${WINGET_REPO}#${PR_NUM} as Ready for Review."
+                gh issue comment "$NUM" --repo "$REPO" --body "$READY_COMMENT"
+                EXISTING_COMMENTS=$(printf '%s\n%s\n' "$EXISTING_COMMENTS" "$READY_COMMENT")
+              else
+                echo "Failed to mark PR #$PR_NUM as ready."
+              fi
+            elif [ "$DRAFT" = "false" ] && [ -z "$VALIDATED" ]; then
+              # winget.yml only gets ~5 minutes to catch the PR after submission; one
+              # that appeared later was never drafted.  Draft it now — unless we
+              # promoted it ourselves, which would mean fighting a deliberate change.
+              if echo "$EXISTING_COMMENTS" | grep -qF "$READY_MARKER"; then
+                echo "Issue #$NUM: PR #$PR_NUM was promoted deliberately, leaving ready."
+              else
+                echo "Issue #$NUM: PR #$PR_NUM is awaiting validation but not drafted, converting..."
+                if GH_TOKEN="$WINGET_TOKEN" gh pr ready "$PR_NUM" --undo --repo "$WINGET_REPO"; then
+                  DRAFT_COMMENT="📝 **Converted to draft:** ${WINGET_REPO}#${PR_NUM} was still awaiting Microsoft's validation."
+                  if ! echo "$EXISTING_COMMENTS" | grep -qF "Converted to draft"; then
+                    gh issue comment "$NUM" --repo "$REPO" --body "$DRAFT_COMMENT"
+                    EXISTING_COMMENTS=$(printf '%s\n%s\n' "$EXISTING_COMMENTS" "$DRAFT_COMMENT")
+                  fi
+                fi
+              fi
+            fi
+
+            # --- Mirror new downstream labels ---
+            if [ -n "$LABELS" ]; then
+              while read -r label; do
+                [ -z "$label" ] && continue
+                if ! echo "$EXISTING_COMMENTS" | grep -F "Downstream PR label detected" | grep -Fq "$label"; then
+                  LABEL_COMMENT="🏷️ **Downstream PR label detected:** \`$label\`"
+                  gh issue comment "$NUM" --repo "$REPO" --body "$LABEL_COMMENT"
+                  EXISTING_COMMENTS=$(printf '%s\n%s\n' "$EXISTING_COMMENTS" "$LABEL_COMMENT")
+                  echo "Issue #$NUM: reported new label $label."
+                fi
+              done < <(echo "$LABELS")
+            fi
+
+            # --- Mirror downstream validation failures ---
+            PR_COMMENTS=$(gh api "repos/${WINGET_REPO}/issues/${PR_NUM}/comments" 2>/dev/null || true)
+            if [ -n "$PR_COMMENTS" ] && [ "$PR_COMMENTS" != "[]" ]; then
+              while read -r comment; do
+                CID=$(echo "$comment" | jq -r '.id')
+                C_BODY=$(echo "$comment" | jq -r '.body')
+
+                echo "$C_BODY" | grep -qiE "(Inconsistencies detected|Failed|Error|Reject|Missing|Validation Failed)" || continue
+                echo "$EXISTING_COMMENTS" | grep -Fq "Comment #$CID" && continue
+
+                # Built at column zero: leading whitespace would make Markdown treat
+                # the quoted body as a code block.
+                FAILURE_COMMENT=$(printf '%s\n\n%s\n' \
+                  "⚠️ **Downstream validation reported an issue** (Comment #${CID}):" \
+                  "$C_BODY")
+                gh issue comment "$NUM" --repo "$REPO" --body "$FAILURE_COMMENT"
+                EXISTING_COMMENTS=$(printf '%s\n%s\n' "$EXISTING_COMMENTS" "$FAILURE_COMMENT")
+                echo "Issue #$NUM: forwarded downstream comment #$CID."
+              done < <(echo "$PR_COMMENTS" | jq -c '.[]')
+            fi
+          done < <(gh issue list --repo "$REPO" --label winget --state open \
+            --json number,title,body --jq '.[] | @base64')
