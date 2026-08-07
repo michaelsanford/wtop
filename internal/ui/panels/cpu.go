@@ -2,6 +2,7 @@ package panels
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -74,6 +75,14 @@ func CPU(snap collector.CPUSnapshot, width int) string {
 		numRows := (numCores + numCols - 1) / numCols
 		cellW := (innerW - (numCols-1)*sepW) / numCols
 
+		// Core labels are 1-based, so the widest is len("128") on a 128-core box.
+		// Sizing every cell to the same label width keeps rows exactly cellW wide;
+		// a fixed %2d would overflow the panel and wrap once cores reach 100.
+		labelW := len(strconv.Itoa(numCores))
+		if labelW < 2 {
+			labelW = 2
+		}
+
 		for row := 0; row < numRows; row++ {
 			parts := make([]string, numCols)
 			for col := 0; col < numCols; col++ {
@@ -81,7 +90,7 @@ func CPU(snap collector.CPUSnapshot, width int) string {
 				if idx >= numCores {
 					parts[col] = strings.Repeat(" ", cellW)
 				} else {
-					parts[col] = renderCoreCell(idx, snap.CorePcts[idx], cellW)
+					parts[col] = renderCoreCell(idx, snap.CorePcts[idx], cellW, labelW)
 				}
 			}
 			lines = append(lines, strings.Join(parts, cellSep))
@@ -106,16 +115,16 @@ func CPU(snap collector.CPUSnapshot, width int) string {
 }
 
 // renderCoreCell formats one core as "NN[████░ NNN%]" in exactly cellW visible chars.
-// Overhead: "NN"(2) + "["(1) + " "(1) + "NNN%"(4) + "]"(1) = 9 chars.
-func renderCoreCell(idx int, pct float64, cellW int) string {
-	const overhead = 9
-	barW := cellW - overhead
+// Overhead beyond the label: "["(1) + " "(1) + "NNN%"(4) + "]"(1) = 7 chars.
+func renderCoreCell(idx int, pct float64, cellW, labelW int) string {
+	const fixedOverhead = 7
+	barW := cellW - labelW - fixedOverhead
 	if barW < 1 {
 		barW = 1
 	}
 	color := cpuBarColor(pct)
 	bar := renderBar(pct, barW, color)
-	return fmt.Sprintf("%2d[%s %3.0f%%]", idx+1, bar, pct)
+	return fmt.Sprintf("%*d[%s %3.0f%%]", labelW, idx+1, bar, pct)
 }
 
 func cpuBarColor(pct float64) lipgloss.Color {
