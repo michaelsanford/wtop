@@ -3,42 +3,48 @@ version: "2"
 linters:
   default: none
   enable:
-    # correctness
+    # correctness (staticcheck subsumes the former gosimple)
     - errcheck
     - govet
     - staticcheck
-    - gosimple
     - ineffassign
     # style
-    - gofmt
     - misspell
     - unconvert
     - unparam
     # security
     - gosec
     # module hygiene
-    - gomodguard
+    - gomodguard_v2
 
   settings:
     gosec:
       excludes:
         # nvidia-smi and powershell.exe are hardcoded system binaries, not user input
         - G204
-    gomodguard:
+    gomodguard_v2:
       blocked:
-        modules:
-          - github.com/pkg/errors:
-              recommendations:
-                - errors
-                - fmt
-              reason: "use stdlib errors with %w wrapping"
+        - module: github.com/pkg/errors
+          recommendations:
+            - errors
+            - fmt
+          reason: "use stdlib errors with %w wrapping"
 
-issues:
-  exclude-rules:
-    - path: "_test\\.go"
-      linters:
-        - gosec
-        - errcheck
+  exclusions:
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - gosec
+          - errcheck
+      # Win32 interop (PDH, DXGI/COM) cannot be expressed without unsafe.Pointer.
+      - path: "_windows\\.go"
+        linters:
+          - gosec
+        text: "G103"
+
+formatters:
+  enable:
+    - gofmt
 
 run:
   timeout: 5m
