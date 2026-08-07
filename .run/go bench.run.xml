@@ -1,0 +1,19 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go bench" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="wtop" />
+    <working_directory value="$PROJECT_DIR$" />
+    <EXTENSION ID="software.aws.toolkits.jetbrains.core.execution.GoAwsConnectionRunConfigurationExtension">
+      <option name="credential" />
+      <option name="region" />
+      <option name="useCurrentConnection" value="false" />
+    </EXTENSION>
+    <kind value="DIRECTORY" />
+    <package value="github.com/michaelsanford/wtop/internal/..." />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <framework value="gobench" />
+    <method v="2">
+      <option name="GoBeforeRunTask" command="vet ./..." />
+    </method>
+  </configuration>
+</component>
