@@ -1,1 +1,8 @@
 *.go text eol=lf
+
+# Go tooling writes these with LF and compares byte-for-byte, so checking them
+# out as CRLF makes `go mod tidy -diff` report a spurious whole-file diff.
+go.mod text eol=lf
+go.sum text eol=lf
+go.work text eol=lf
+go.work.sum text eol=lf
