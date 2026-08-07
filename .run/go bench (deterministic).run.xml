@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="go bench" type="GoTestRunConfiguration" factoryName="Go Test">
+  <configuration default="false" name="go bench (deterministic)" type="GoTestRunConfiguration" factoryName="Go Test">
     <module name="wtop" />
     <working_directory value="$PROJECT_DIR$" />
     <EXTENSION ID="software.aws.toolkits.jetbrains.core.execution.GoAwsConnectionRunConfigurationExtension">
@@ -12,6 +12,7 @@
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
     <framework value="gobench" />
+    <pattern value="^Benchmark[^L]" />
     <parameters value="-benchmem" />
     <method v="2">
       <option name="GoBeforeRunTask" command="vet ./..." />
