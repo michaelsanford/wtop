@@ -1,17 +1,18 @@
 # Verification downloads
 downloads/
 
-# Build outputs
-wtop
-wtop.exe
-wtop-*.exe
+# Build outputs (anchored to repo root — an unanchored "wtop" also matches cmd/wtop/)
+/wtop
+/wtop.exe
+/wtop-*.exe
 *.bundle
 *-sbom.cdx.json
 
 # Go test cache
 *.test
 
-# IDE
+# IDE / agent scratch
 .vscode/
 .idea/
+/CLAUDE.md
 *_qodana.sarif.json
