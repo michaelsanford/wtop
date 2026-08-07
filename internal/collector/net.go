@@ -29,16 +29,8 @@ func collectNet(
 
 		var sentPerSec, recvPerSec float64
 		if prev, ok := prevBytes[c.Name]; ok && !prevTime.IsZero() {
-			sentDelta := float64(c.BytesSent - prev[0])
-			recvDelta := float64(c.BytesRecv - prev[1])
-			if sentDelta < 0 {
-				sentDelta = 0
-			}
-			if recvDelta < 0 {
-				recvDelta = 0
-			}
-			sentPerSec = sentDelta / elapsed
-			recvPerSec = recvDelta / elapsed
+			sentPerSec = netRate(c.BytesSent, prev[0], elapsed)
+			recvPerSec = netRate(c.BytesRecv, prev[1], elapsed)
 		}
 
 		// skip loopback and interfaces with no traffic ever
@@ -54,4 +46,17 @@ func collectNet(
 	}
 
 	return snaps, newBytes, now
+}
+
+// netRate returns the per-second transfer rate between two counter samples.
+//
+// Interface byte counters are monotonic, so cur < prev means the counter was
+// reset (adapter disable/reconnect, driver reload).  The comparison must happen
+// before the subtraction: cur-prev is unsigned arithmetic and would wrap to
+// ~1.8e19 rather than producing a negative that a later sign check could catch.
+func netRate(cur, prev uint64, elapsed float64) float64 {
+	if elapsed <= 0 || cur < prev {
+		return 0
+	}
+	return float64(cur-prev) / elapsed
 }
