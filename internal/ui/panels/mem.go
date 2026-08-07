@@ -115,10 +115,16 @@ func scaleComposition(val1, val2, val3, total uint64, width int) (int, int, int,
 	if total == 0 || width <= 0 {
 		return 0, 0, 0, width
 	}
+	// A single value may exceed total if a caller passes unrelated quantities;
+	// clamp so the segments can never overrun width and drive freeN negative
+	// (strings.Repeat panics on a negative count).
 	toChars := func(bytes uint64) int {
 		n := int(float64(bytes) / float64(total) * float64(width))
 		if n < 0 {
 			return 0
+		}
+		if n > width {
+			return width
 		}
 		return n
 	}
@@ -142,5 +148,8 @@ func scaleComposition(val1, val2, val3, total uint64, width int) (int, int, int,
 		}
 	}
 	freeN := width - n1 - n2 - n3
+	if freeN < 0 {
+		freeN = 0
+	}
 	return n1, n2, n3, freeN
 }
