@@ -32,6 +32,20 @@ const (
 	cellPadOverhead = numCols * 2 // 10
 )
 
+// selfMarker prefixes the Name cell of wtop and the processes hosting it.  Plain
+// text only — ANSI inside a cell breaks bubbles/table's byte-vs-rune width
+// accounting, the same reason the sort arrow is a bare rune.
+const selfMarker = "◆ "
+
+// markSelf prefixes name with selfMarker when the process is part of wtop's own
+// ancestry.  Unmarked rows get no compensating pad; names stay flush left.
+func markSelf(name string, self bool) string {
+	if self {
+		return selfMarker + name
+	}
+	return name
+}
+
 // BuildColumns returns table columns.  The active sort column gets a plain-text
 // arrow appended (no ANSI codes — those break table cell alignment).
 func BuildColumns(termW, sortCol int, ascending bool) []table.Column {
@@ -64,7 +78,7 @@ func BuildRows(procs []collector.ProcSnapshot) []table.Row {
 	for _, p := range procs {
 		rows = append(rows, table.Row{
 			fmt.Sprintf("%d", p.PID),
-			p.Name,
+			markSelf(p.Name, p.Self),
 			fmt.Sprintf("%.1f", p.CPUPct),
 			fmt.Sprintf("%.1f", p.MemPct),
 			fmt.Sprintf("%.1f", p.MemMB),
@@ -191,7 +205,7 @@ func dfsTreeRows(n *treeNode, prefix, connector string, sortBy int, ascending bo
 
 	*rows = append(*rows, table.Row{
 		fmt.Sprintf("%d", p.PID),
-		prefix + connector + p.Name,
+		prefix + connector + markSelf(p.Name, p.Self),
 		fmt.Sprintf("%.1f", p.CPUPct),
 		fmt.Sprintf("%.1f", p.MemPct),
 		fmt.Sprintf("%.1f", p.MemMB),
