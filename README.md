@@ -15,7 +15,7 @@
 
 A self-contained, single-binary terminal system monitor for Windows, inspired by htop and written in Go.
 
-![wtop screenshot](docs/wtop.png)
+![wtop screenshot showing CPU grid, memory bars, GPU panel, and a sortable process tree in which a ◆ marks the processes that exist only to run and display wtop itself](docs/wtop.png)
 
 > **⚡ Latest stable release** — install with [winget](https://learn.microsoft.com/windows/package-manager/):
 >
@@ -30,6 +30,7 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 - **GPU** — best-effort: NVIDIA via `nvidia-smi`, AMD/Intel via PowerShell `Get-Counter`; loads in the background on startup so other panels appear immediately
 - **Network** — shows per-interface send/receive rates in real time; loopback and zero-traffic interfaces are hidden automatically (automatically displays when the terminal is 110+ columns wide)
 - **Process list** — flat or htop-style tree view (`t`); sortable by CPU%, memory, PID, or name; kill selected process
+- **Self-ancestry marker** — a `◆` marks `wtop` itself and the terminal session hosting it (the shells and terminal host above it), so you can see the monitor's own cost and avoid killing your session by mistake. Those processes stay in the list even when idle. The walk stops below the session root — `explorer.exe` parents nearly everything interactive, so marking it would say nothing
 
 ## Keyboard shortcuts
 
