@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+env:
+  # Referenced by the downstream PR search, the draft call, and the tracker body.
+  # Kept in one place so those three can never drift apart.
+  PACKAGE_ID: michaelsanford.wtop
+  WINGET_REPO: microsoft/winget-pkgs
+
 jobs:
   winget-update:
     name: Submit winget package update
@@ -17,6 +23,114 @@ jobs:
       - name: Submit to winget
         uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
-          identifier: michaelsanford.wtop
+          identifier: ${{ env.PACKAGE_ID }}
           installers-regex: '\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
+
+  track:
+    name: Draft downstream PR and open tracker
+    needs: winget-update
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' # tag_name only exists on release events
+    permissions:
+      contents: read # release compare API
+      issues: write # tracking issue
+
+    steps:
+      - name: Draft the downstream PR and open a tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+
+          # winget-releaser titles the PR "New version: <id> version <x.y.z>", or
+          # "New package: ..." on a first submission — match the common substring.
+          TITLE_MATCH="${PACKAGE_ID} version ${VERSION}"
+
+          # The PR is created moments before this job starts, so poll for it.  The
+          # pulls endpoint is real-time; the search index lags by up to a minute,
+          # so it is only the fallback.
+          PR_URL=""
+          for i in $(seq 1 10); do
+            PR_URL=$(gh api -X GET "repos/${WINGET_REPO}/pulls" -f per_page=100 \
+              --jq "[.[] | select(.title | contains(\"${TITLE_MATCH}\"))][0].html_url // empty")
+
+            if [ -z "$PR_URL" ]; then
+              PR_URL=$(gh api -X GET search/issues \
+                -f q="repo:${WINGET_REPO} in:title ${TITLE_MATCH} type:pr" \
+                --jq '.items[0].html_url // empty')
+            fi
+
+            [ -n "$PR_URL" ] && break
+            echo "PR not found yet (attempt $i/10), retrying in 30s..."
+            sleep 30
+          done
+
+          # Convert to draft so moderators don't see it until Microsoft's own
+          # validation has passed.  winget-track.yml promotes it back to ready.
+          PR_NUM=""
+          if [ -n "$PR_URL" ]; then
+            PR_NUM=$(echo "$PR_URL" | grep -oE '[0-9]+$' || true)
+          fi
+          if [ -n "$PR_NUM" ]; then
+            echo "Converting downstream PR #$PR_NUM to draft..."
+            GH_TOKEN="$WINGET_TOKEN" gh pr ready "$PR_NUM" --undo --repo "$WINGET_REPO" || true
+          fi
+
+          # --- Determine release contributors (authors + co-authors) ---
+          PREV=$(gh api "repos/${REPO}/releases?per_page=20" \
+            --jq "[.[] | select(.draft==false) | .tag_name] | .[1] // empty")
+
+          AUTHORS=""
+          COAUTHORS=""
+          if [ -n "$PREV" ]; then
+            COMPARE=$(gh api "repos/${REPO}/compare/${PREV}...${TAG}")
+            AUTHORS=$(echo "$COMPARE" | jq -r \
+              '[.commits[].author.login] | map(select(. != null and (endswith("[bot]") | not))) | unique | .[]')
+            # Co-authored-by trailers: extract the login from GitHub noreply addresses only
+            COAUTHORS=$(echo "$COMPARE" | jq -r '.commits[].commit.message' \
+              | grep -iE '^Co-authored-by:' \
+              | grep -ioE '([0-9]+\+)?[A-Za-z0-9._-]+@users\.noreply\.github\.com' \
+              | sed -E 's/@users\.noreply\.github\.com//I; s/^[0-9]+\+//' || true)
+          fi
+
+          # Always include the maintainer, dedupe, format as @mentions
+          MENTIONS=$(printf '%s\n%s\nmichaelsanford\n' "$AUTHORS" "$COAUTHORS" \
+            | sed '/^$/d' | sort -u | sed 's/^/@/' | paste -sd ' ' -)
+
+          # --- Compose the tracker body ---
+          # winget-track.yml parses the PR link and the mentions back out of this,
+          # so the two "Downstream PR" phrasings must stay in sync with its greps.
+          if [ -z "$PR_URL" ]; then
+            LINK_LINE="Downstream PR could not be located automatically — check https://github.com/${WINGET_REPO}/pulls?q=${PACKAGE_ID}"
+          else
+            LINK_LINE="Downstream PR: ${PR_URL}"
+          fi
+
+          BODY=$(printf '%s\n' \
+            "Tracking downstream approval of the winget manifest update." \
+            "" \
+            "- Release: ${TAG}" \
+            "- ${LINK_LINE}" \
+            "" \
+            "The PR is submitted as a draft and is promoted to ready for review" \
+            "automatically once Microsoft's \`Azure-Pipeline-Passed\` and" \
+            "\`Validation-Completed\` labels both appear." \
+            "" \
+            "Contributors to this release: ${MENTIONS}" \
+            "" \
+            "This issue will close automatically once the downstream PR is merged.")
+
+          # Ensure the label exists, then open the tracker
+          gh label create winget --repo "$REPO" \
+            --color FFA500 --description "winget release tracking" 2>/dev/null || true
+
+          gh issue create \
+            --repo "$REPO" \
+            --title "Await Microsoft approval for Winget update ${TAG}" \
+            --body "$BODY" \
+            --label winget
