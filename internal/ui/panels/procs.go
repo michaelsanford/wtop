@@ -149,9 +149,27 @@ func BuildTreeRows(procs []collector.ProcSnapshot, sortBy int, ascending bool) [
 	sortTreeNodes(roots, sortBy, ascending)
 
 	rows := make([]table.Row, 0, len(procs))
+	visited := make(map[int32]struct{}, len(procs))
 	for _, r := range roots {
 		// Roots get no leading connector; pass empty connector and prefix.
-		dfsTreeRows(r, "", "", sortBy, ascending, &rows)
+		dfsTreeRows(r, "", "", sortBy, ascending, visited, &rows)
+	}
+
+	// PID reuse can leave a process pointing at a recycled PPID, forming a parent
+	// cycle (or a self-parent).  No member of such a cycle qualifies as a root, so
+	// none is reachable from the walk above.  Promote whatever is left to a root
+	// so that no process silently disappears from the tree view.
+	if len(visited) < len(nodes) {
+		stranded := make([]*treeNode, 0, len(nodes)-len(visited))
+		for _, p := range procs {
+			if _, seen := visited[p.PID]; !seen {
+				stranded = append(stranded, nodes[p.PID])
+			}
+		}
+		sortTreeNodes(stranded, sortBy, ascending)
+		for _, s := range stranded {
+			dfsTreeRows(s, "", "", sortBy, ascending, visited, &rows)
+		}
 	}
 	return rows
 }
@@ -161,8 +179,16 @@ func BuildTreeRows(procs []collector.ProcSnapshot, sortBy int, ascending bool) [
 //
 // connector is the branch symbol for this node ("├─ ", "└─ ", or "" for roots).
 // prefix is the accumulated indentation string inherited from ancestors.
-func dfsTreeRows(n *treeNode, prefix, connector string, sortBy int, ascending bool, rows *[]table.Row) {
+//
+// visited guards against parent cycles introduced by PID reuse; without it a
+// self-parent or A→B→A loop would recurse until the stack blew.
+func dfsTreeRows(n *treeNode, prefix, connector string, sortBy int, ascending bool, visited map[int32]struct{}, rows *[]table.Row) {
 	p := n.proc
+	if _, seen := visited[p.PID]; seen {
+		return
+	}
+	visited[p.PID] = struct{}{}
+
 	*rows = append(*rows, table.Row{
 		fmt.Sprintf("%d", p.PID),
 		prefix + connector + p.Name,
@@ -193,7 +219,7 @@ func dfsTreeRows(n *treeNode, prefix, connector string, sortBy int, ascending bo
 		} else {
 			childConnector = "├─ "
 		}
-		dfsTreeRows(c, childPrefix, childConnector, sortBy, ascending, rows)
+		dfsTreeRows(c, childPrefix, childConnector, sortBy, ascending, visited, rows)
 	}
 }
 
