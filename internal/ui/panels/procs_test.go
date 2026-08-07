@@ -278,3 +278,54 @@ func TestBuildRows_Empty(t *testing.T) {
 		t.Errorf("expected no rows, got %d", len(got))
 	}
 }
+
+func TestBuildRows_MarksOnlySelfProcesses(t *testing.T) {
+	procs := []collector.ProcSnapshot{
+		{PID: 1, Name: "wtop.exe", Self: true},
+		{PID: 2, Name: "chrome.exe"},
+	}
+	rows := BuildRows(procs)
+
+	if got, want := rows[0][ColName], selfMarker+"wtop.exe"; got != want {
+		t.Errorf("self process: got %q, want %q", got, want)
+	}
+	// Unmarked rows get no compensating pad — names stay flush left.
+	if got, want := rows[1][ColName], "chrome.exe"; got != want {
+		t.Errorf("non-self process: got %q, want %q", got, want)
+	}
+}
+
+func TestBuildRows_MarkerIsPlainText(t *testing.T) {
+	// Same constraint as the sort arrow: ANSI inside a cell breaks bubbles/table's
+	// width accounting.
+	rows := BuildRows([]collector.ProcSnapshot{{PID: 1, Name: "wtop.exe", Self: true}})
+	if strings.Contains(rows[0][ColName], "\x1b") {
+		t.Errorf("marker contains ANSI escapes: %q", rows[0][ColName])
+	}
+}
+
+func TestBuildTreeRows_MarkerFollowsTheConnector(t *testing.T) {
+	procs := []collector.ProcSnapshot{
+		proc(1, 0, "root", 0, 0),
+		{PID: 2, PPID: 1, Name: "pwsh.exe", Self: true},
+		proc(3, 1, "other", 0, 0),
+	}
+	rows := BuildTreeRows(procs, sortPID, true)
+
+	names := map[string]string{}
+	for _, r := range rows {
+		names[r[ColPID]] = r[ColName]
+	}
+
+	// The marker belongs between the connector and the name, so the box-drawing
+	// column stays aligned with the unmarked rows around it.
+	if got, want := names["2"], "├─ "+selfMarker+"pwsh.exe"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+	if got, want := names["3"], "└─ other"; got != want {
+		t.Errorf("non-self child: got %q, want %q", got, want)
+	}
+	if got, want := names["1"], "root"; got != want {
+		t.Errorf("non-self root: got %q, want %q", got, want)
+	}
+}

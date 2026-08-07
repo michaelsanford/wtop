@@ -83,6 +83,10 @@ type ProcSnapshot struct {
 	CPUPct float64
 	MemPct float32
 	MemMB  float64
+	// Self marks wtop's own process and every ancestor up to the root — i.e. the
+	// shell and terminal session hosting it.  Those entries are pinned into the
+	// snapshot even when they fall outside the top-CPU cut.
+	Self bool
 }
 
 // Collector gathers a Snapshot. Implementations are safe for concurrent use.

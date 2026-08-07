@@ -450,7 +450,7 @@
       <span class="terminal-title">Windows PowerShell &mdash; wtop.exe</span>
     </div>
     <img src="wtop.png"
-         alt="wtop screenshot showing CPU grid, memory bars, GPU panel, and sortable process list"
+         alt="wtop screenshot showing CPU grid, memory bars, GPU panel, and a sortable process tree in which a ◆ marks the processes that exist only to run and display wtop itself"
          width="1000" loading="lazy" decoding="async">
   </div>
 </div>
@@ -486,6 +486,7 @@
         <div class="feat-icon fi-r">☰</div>
         <h3>Process list</h3>
         <p>Top processes sortable by CPU%, memory, PID, or name. Toggle an htop-style tree view (<kbd>t</kbd>) to see parent&thinsp;→&thinsp;child relationships with box-drawing connectors. Kill any selected process with a confirmation step.</p>
+        <p>A <code>◆</code> marks <code>wtop</code> itself and the terminal session hosting it &mdash; the shells and terminal host above it &mdash; so the monitor's own cost is visible and your session is hard to kill by accident. Those processes stay pinned in the list even when idle. The chain stops below the session root: <code>explorer.exe</code> parents nearly everything interactive, so marking it would say nothing.</p>
       </div>
       <div class="feat">
         <div class="feat-icon fi-gg">◉</div>
