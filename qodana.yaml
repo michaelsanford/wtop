@@ -8,3 +8,8 @@ profile:
   name: qodana.recommended
 include:
   - name: CheckDependencyLicenses
+exclude:
+  - name: GoUnusedGlobalVariable
+    paths:
+      - "*_test.go"
+      - "**/*_test.go"
