@@ -202,3 +202,7 @@ Summary  —  v1.1.0
 ## License
 
 MIT
+
+## Privacy
+
+`wtop` collects zero telemetry, zero analytics, and zero tracking data. See [PRIVACY.md](PRIVACY.md) for full compliance details (GDPR, PIPEDA, Loi 25, OAIC APP, CCPA).
