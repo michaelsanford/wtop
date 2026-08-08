@@ -66,6 +66,33 @@ Requires Go 1.26+.
 go build -o wtop.exe ./cmd/wtop/
 ```
 
+### Tests and benchmarks
+
+```powershell
+go test ./...                                          # tests
+go test -run='^$' -bench='^Benchmark[^L]' -benchmem ./...   # benchmarks, deterministic only
+go test -run='^$' -bench='.' -benchmem ./...           # benchmarks, including live ones
+```
+
+Quote the `-bench` pattern: PowerShell strips a bare trailing `.` and `go test` then reads it as a
+package argument.
+
+Benchmarks come in two kinds. Plain `BenchmarkXxx` cover the render and tick paths and touch
+nothing outside the process, so their `allocs/op` are stable and comparable between commits —
+that is the number to watch. `BenchmarkLive_Xxx` measure real system calls through gopsutil, so
+their results depend on how many processes and network interfaces the host happens to have and
+are only meaningful against another run on the same machine.
+
+To compare a change against a baseline, use
+[`benchstat`](https://pkg.go.dev/golang.org/x/perf/cmd/benchstat):
+
+```powershell
+go test -run='^$' -bench='^Benchmark[^L]' -benchmem -count=6 ./... > old.txt
+# ...make the change...
+go test -run='^$' -bench='^Benchmark[^L]' -benchmem -count=6 ./... > new.txt
+go run golang.org/x/perf/cmd/benchstat@latest old.txt new.txt
+```
+
 ## Supply chain security
 
 Every release includes:
