@@ -34,6 +34,26 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Install go-winres
+        run: go install github.com/tc-hib/go-winres@v0.3.3
+
+      # An unsigned PE with no VERSIONINFO block and no manifest scores badly with
+      # Defender's ML heuristics (#20).  Keep this pin in sync with ci.yml and the
+      # //go:generate directive in cmd/wtop/main.go.
+      - name: Embed Windows resources
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # FILEVERSION must be four numeric fields; the tag is only three.
+          go-winres make \
+            --arch ${{ matrix.goarch }} \
+            --in cmd/wtop/winres/winres.json \
+            --out cmd/wtop/rsrc \
+            --product-version "${GITHUB_REF_NAME}" \
+            --file-version "${VERSION}.0"
+
+      # -s -w is deliberately absent: a stripped symbol table reads as
+      # packer-adjacent to the same heuristics, and the symbols make user-reported
+      # panic traces legible.  ci.yml omits them for the same reason.
       - name: Build binary
         env:
           CGO_ENABLED: "0"
@@ -42,7 +62,7 @@ jobs:
         run: |
           go build \
             -trimpath \
-            -ldflags="-s -w -X github.com/michaelsanford/wtop/internal/version.Version=${{ github.ref_name }}" \
+            -ldflags="-X github.com/michaelsanford/wtop/internal/version.Version=${{ github.ref_name }}" \
             -o wtop-${{ github.ref_name }}-${{ matrix.suffix }} \
             ./cmd/wtop/
 

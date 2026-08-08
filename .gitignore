@@ -8,6 +8,10 @@ downloads/
 *.bundle
 *-sbom.cdx.json
 
+# Windows resource objects — generated from cmd/wtop/winres/winres.json by
+# go-winres (`go generate ./cmd/wtop/`), versioned from the release tag in CI
+/cmd/wtop/*.syso
+
 # Go test cache
 *.test
 

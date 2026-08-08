@@ -40,19 +40,30 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      # Generate the .syso files here too, so a malformed winres.json fails on the
+      # PR rather than on a pushed tag.  Versions stay at 0.0.0.0 — only release.yml
+      # stamps the real ones.  Keep the pin in sync with release.yml and the
+      # //go:generate directive in cmd/wtop/main.go.
+      - name: Install go-winres
+        run: go install github.com/tc-hib/go-winres@v0.3.3
+
+      - name: Embed Windows resources
+        run: go-winres make --arch amd64,arm64 --in cmd/wtop/winres/winres.json --out cmd/wtop/rsrc
+
+      # -s -w deliberately omitted here as in release.yml; see the comment there.
       - name: Build (windows/amd64)
         env:
           CGO_ENABLED: "0"
           GOOS: windows
           GOARCH: amd64
-        run: go build -trimpath -ldflags="-s -w" ./cmd/wtop/
+        run: go build -trimpath ./cmd/wtop/
 
       - name: Build (windows/arm64)
         env:
           CGO_ENABLED: "0"
           GOOS: windows
           GOARCH: arm64
-        run: go build -trimpath -ldflags="-s -w" ./cmd/wtop/
+        run: go build -trimpath ./cmd/wtop/
 
       - name: go test
         run: go test ./...
