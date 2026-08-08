@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — wtop</title>
+
+  <!-- Security (meta where HTTP headers unavailable) -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://api.github.com; img-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Permissions-Policy"
+        content="accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()">
+
+  <!-- SEO / social -->
+  <meta name="description" content="Privacy Policy for wtop — A self-contained Windows system monitor with zero telemetry, zero tracking, and strict local execution.">
+  <meta name="author" content="Michael Sanford">
+  <meta property="og:title" content="Privacy Policy — wtop">
+  <meta property="og:description" content="Privacy Policy for wtop: Zero telemetry, zero analytics, zero data collection.">
+  <meta property="og:image" content="wtop.png">
+  <meta property="og:type" content="website">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0d1117;
+      --surface:      #161b22;
+      --surface-2:    #1c2128;
+      --border:       #30363d;
+      --border-sub:   #21262d;
+      --accent:       #58a6ff;
+      --green:        #3fb950;
+      --purple:       #bc8cff;
+      --orange:       #e3b341;
+      --red:          #f85149;
+      --text:         #e6edf3;
+      --muted:        #8b949e;
+      --subtle:       #484f58;
+      --sans:         -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --mono:         'Cascadia Code', 'Cascadia Mono', 'Consolas', 'JetBrains Mono', ui-monospace, monospace;
+      --r:            8px;
+      --r-lg:         14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── NAV ─────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-sub);
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto; padding: 0 2rem;
+      height: 56px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: var(--mono); font-size: 1.05rem; font-weight: 600;
+      text-decoration: none; color: var(--text); letter-spacing: -.02em;
+    }
+    .nav-logo:hover { text-decoration: none; }
+    .nav-logo .dollar { color: var(--green); }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: .875rem;
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-gh {
+      display: inline-flex; align-items: center; gap: .35rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: .3rem .75rem;
+      font-size: .8rem; text-decoration: none; color: var(--muted);
+      transition: border-color .15s, color .15s;
+    }
+    .nav-gh:hover { border-color: var(--muted); color: var(--text); text-decoration: none; }
+
+    /* ── CONTAINER & CONTENT ────────────────────────── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3.5rem 2rem 5rem;
+    }
+
+    .page-header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-sub);
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-family: var(--mono); font-size: .78rem;
+      background: rgba(63,185,80,.12); color: var(--green);
+      border: 1px solid rgba(63,185,80,.25);
+      border-radius: 999px; padding: .25rem .75rem; margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.02em;
+      margin-bottom: .5rem;
+    }
+
+    .last-updated {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .section {
+      margin-bottom: 2.5rem;
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -.01em;
+      margin-bottom: .85rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border-sub);
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 1.2rem 0 .5rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #c9d1d9;
+    }
+
+    ul {
+      margin: .5rem 0 1.2rem 1.5rem;
+      color: #c9d1d9;
+    }
+
+    li {
+      margin-bottom: .4rem;
+    }
+
+    .highlight-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .highlight-box.green {
+      border-color: rgba(63,185,80,.35);
+      background: rgba(63,185,80,.05);
+    }
+
+    .highlight-title {
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--green);
+      margin-bottom: .5rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: .88em;
+      background: var(--surface-2);
+      padding: .15em .4em;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    /* ── FOOTER ──────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-sub);
+      padding: 2.5rem 2rem;
+      background: var(--surface);
+    }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: .875rem; color: var(--muted);
+    }
+    .footer-left a { color: var(--muted); text-decoration: none; }
+    .footer-left a:hover { color: var(--text); }
+    .footer-right { display: flex; gap: 1.5rem; list-style: none; }
+    .footer-right a { color: var(--muted); text-decoration: none; }
+    .footer-right a:hover { color: var(--text); }
+
+    @media (max-width: 600px) {
+      .footer-inner { flex-direction: column; gap: 1rem; text-align: center; }
+      .footer-right { justify-content: center; flex-wrap: wrap; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><span class="dollar">$</span> wtop</a>
+    <ul class="nav-links">
+      <li><a href="index.html#features">Features</a></li>
+      <li><a href="index.html#install">Install</a></li>
+      <li><a href="index.html#verify">Verify</a></li>
+      <li><a href="privacy.html" style="color:var(--text)">Privacy</a></li>
+    </ul>
+    <a href="https://github.com/michaelsanford/wtop" class="nav-gh" target="_blank" rel="noopener">
+      <svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+      </svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- MAIN CONTAINER -->
+<main class="container">
+  <div class="page-header">
+    <div class="badge">Zero Telemetry</div>
+    <h1>Privacy Policy</h1>
+    <div class="last-updated">Last Updated: August 8, 2026</div>
+  </div>
+
+  <p>This Privacy Policy outlines the privacy and data protection practices for <strong>wtop</strong> ("we", "us", or "our", maintained by <a href="https://github.com/michaelsanford">Michael Sanford</a>) concerning the <code>wtop</code> software utility, its GitHub repository, and documentation.</p>
+
+  <p>We are dedicated to total transparency and adherence to international privacy standards, including:</p>
+  <ul>
+    <li><strong>GDPR / UK GDPR</strong> (General Data Protection Regulation — European Union & United Kingdom)</li>
+    <li><strong>PIPEDA</strong> (Personal Information Protection and Electronic Documents Act — Canada Federal)</li>
+    <li><strong>Loi 25</strong> (Act to modernize legislative provisions as regards the protection of personal information — Quebec, Canada)</li>
+    <li><strong>OAIC APPs</strong> (Australian Privacy Principles under the Privacy Act 1988 — Australia)</li>
+    <li><strong>CCPA / CPRA</strong> (California Consumer Privacy Act / California Privacy Rights Act — California, USA)</li>
+  </ul>
+
+  <!-- ZERO TELEMETRY -->
+  <div class="section">
+    <h2>1. Zero-Telemetry Guarantee</h2>
+    <div class="highlight-box green">
+      <div class="highlight-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Strict Local Execution &amp; Zero Data Transmission
+      </div>
+      <p style="margin-bottom:0"><strong>wtop does not collect, record, track, transmit, or monetize any personal data or telemetry whatsoever.</strong></p>
+    </div>
+    <p>When running <code>wtop.exe</code> on your Windows host:</p>
+    <ul>
+      <li><strong>No Analytics or Telemetry:</strong> There is no telemetry framework, crash-reporting daemon, or tracking code in the binary.</li>
+      <li><strong>Local System APIs:</strong> All system counters (CPU utilization, physical memory, GPU statistics, network I/O, process lists, and execution priority) are read exclusively from local Windows kernel APIs (PDH, DXGI, Win32).</li>
+      <li><strong>No External Socket Egress:</strong> The application does not initiate outbound network connections to any external servers or tracking endpoints.</li>
+      <li><strong>Volatile Memory Only:</strong> All metrics reside solely in transient RAM to render the terminal interface and are immediately purged when the application exits.</li>
+    </ul>
+  </div>
+
+  <!-- VOLUNTARY INFORMATION -->
+  <div class="section">
+    <h2>2. Voluntary Information (GitHub Platform)</h2>
+    <p>The only personal or identifiable information collected in connection with <code>wtop</code> is data you <strong>voluntarily provide</strong> when participating in our open-source GitHub repository (<a href="https://github.com/michaelsanford/wtop">michaelsanford/wtop</a>):</p>
+    <ul>
+      <li><strong>Issue Reports &amp; Discussions:</strong> Public GitHub usernames, profile URLs, and any details, log output, or screenshots voluntarily included in bug reports.</li>
+      <li><strong>Pull Requests &amp; Commits:</strong> Git author name, Git email address, and commit metadata submitted to the project repository.</li>
+    </ul>
+    <p>GitHub's collection and hosting of repository data is subject to the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
+  </div>
+
+  <!-- RIGHTS & RIGHT TO BE FORGOTTEN -->
+  <div class="section">
+    <h2>3. Data Subject Rights &amp; The Right to be Forgotten</h2>
+    <p>We honor statutory privacy rights across all jurisdictions:</p>
+    <ul>
+      <li><strong>Right of Access &amp; Portability:</strong> You have the right to request confirmation of any voluntary information held about you.</li>
+      <li><strong>Right to Rectification:</strong> You may update or correct inaccurate voluntary submissions.</li>
+      <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> You may request the deletion of voluntarily submitted issue descriptions, comments, or personal disclosures. You can also delete or edit your own issues and comments directly on GitHub.</li>
+      <li><strong>Right to Restriction &amp; Objection:</strong> You may object to or restrict processing of voluntary data.</li>
+    </ul>
+
+    <div class="highlight-box">
+      <div class="highlight-title" style="color:var(--text)">Open-Source Code Contribution Exception</div>
+      <p style="margin-bottom:0">Under standard open-source governance and copyright licensing, once a code modification, bug fix, or documentation contribution has been accepted and merged into the project's codebase, the resulting Git commit history and code become an immutable part of the public repository licensed under the <a href="https://github.com/michaelsanford/wtop/blob/main/LICENSE">MIT License</a>. This perpetual license is necessary to maintain project continuity, reproducible builds, and dependency provenance for all downstream users.</p>
+    </div>
+  </div>
+
+  <!-- REGIONAL COMPLIANCE -->
+  <div class="section">
+    <h2>4. Multi-Jurisdiction Compliance Disclosures</h2>
+    
+    <h3>A. European Union &amp; United Kingdom (GDPR / UK GDPR)</h3>
+    <ul>
+      <li><strong>Data Controller:</strong> Michael Sanford (Contact via GitHub).</li>
+      <li><strong>Legal Basis:</strong> Legitimate interests (GDPR Art. 6(1)(f)) and explicit consent (GDPR Art. 6(1)(a)) for handling voluntarily submitted technical bug reports and feature requests.</li>
+      <li><strong>Supervisory Authority:</strong> You have the right to lodge a complaint with your local Data Protection Authority (DPA) or the UK Information Commissioner's Office (ICO).</li>
+    </ul>
+
+    <h3>B. Canada (PIPEDA &amp; Quebec Loi 25)</h3>
+    <ul>
+      <li><strong>Accountability:</strong> The project maintainer is responsible for personal information protection compliance under Canadian privacy legislation.</li>
+      <li><strong>No Automated Profiling:</strong> <code>wtop</code> performs no automated profiling, tracking technologies, or automated decision-making.</li>
+      <li><strong>Consent:</strong> By voluntarily submitting an issue or contribution on GitHub, you consent to the public processing of the provided information for the purpose of resolving your inquiry or reviewing your contribution.</li>
+    </ul>
+
+    <h3>C. Australia (Privacy Act 1988 &amp; OAIC APPs)</h3>
+    <ul>
+      <li>In accordance with the Australian Privacy Principles (APPs), we only collect voluntary personal information reasonably necessary for open-source project maintenance, uphold appropriate security safeguards, and provide individual access/correction rights upon request.</li>
+    </ul>
+
+    <h3>D. California (CCPA / CPRA)</h3>
+    <ul>
+      <li><strong>No Sale or Sharing:</strong> We do not sell or share personal information as defined by California privacy laws. We have not sold or shared any consumer data in the preceding 12 months.</li>
+      <li><strong>Non-Discrimination:</strong> We do not discriminate against any user for exercising their statutory privacy rights.</li>
+    </ul>
+  </div>
+
+  <!-- SECURITY SAFEGUARDS -->
+  <div class="section">
+    <h2>5. Security Safeguards</h2>
+    <p>No user credentials, authentication tokens, or personal identifiers are stored or managed by <code>wtop</code>. Release binaries are built in isolated GitHub Actions runners, attested with cryptographic build provenance (<a href="https://github.com/michaelsanford/wtop/attestations">GitHub Artifact Attestations</a>), and signed with keyless Cosign signatures.</p>
+  </div>
+
+  <!-- CONTACT -->
+  <div class="section">
+    <h2>6. Contact &amp; Privacy Requests</h2>
+    <p>If you have any questions, concerns, or requests regarding this Privacy Policy or wish to exercise your right to erasure, please contact the maintainer:</p>
+    <ul>
+      <li><strong>GitHub Issues:</strong> <a href="https://github.com/michaelsanford/wtop/issues">Open an issue on GitHub</a></li>
+      <li><strong>Project Maintainer:</strong> <a href="https://github.com/michaelsanford">@michaelsanford</a></li>
+    </ul>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-left">
+      <span style="font-family:var(--mono)">wtop</span> &mdash; MIT &middot;
+      by <a href="https://github.com/michaelsanford">michaelsanford</a>
+    </div>
+    <ul class="footer-right">
+      <li><a href="https://github.com/michaelsanford/wtop">GitHub</a></li>
+      <li><a href="https://github.com/michaelsanford/wtop/releases">Releases</a></li>
+      <li><a href="https://github.com/michaelsanford/wtop/attestations">Attestations</a></li>
+      <li><a href="privacy.html">Privacy</a></li>
+      <li><a href="https://github.com/michaelsanford/wtop/blob/main/LICENSE">License</a></li>
+    </ul>
+  </div>
+</footer>
+
+</body>
+</html>
