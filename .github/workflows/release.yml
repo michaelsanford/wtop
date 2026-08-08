@@ -34,6 +34,26 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Install go-winres
+        run: go install github.com/tc-hib/go-winres@v0.3.3
+
+      # An unsigned PE with no VERSIONINFO block and no manifest scores badly with
+      # Defender's ML heuristics (#20).  Keep this pin in sync with ci.yml and the
+      # //go:generate directive in cmd/wtop/main.go.
+      - name: Embed Windows resources
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # FILEVERSION must be four numeric fields; the tag is only three.
+          go-winres make \
+            --arch ${{ matrix.goarch }} \
+            --in cmd/wtop/winres/winres.json \
+            --out cmd/wtop/rsrc \
+            --product-version "${GITHUB_REF_NAME}" \
+            --file-version "${VERSION}.0"
+
+      # -s -w is deliberately absent: a stripped symbol table reads as
+      # packer-adjacent to the same heuristics, and the symbols make user-reported
+      # panic traces legible.  ci.yml omits them for the same reason.
       - name: Build binary
         env:
           CGO_ENABLED: "0"
@@ -42,7 +62,7 @@ jobs:
         run: |
           go build \
             -trimpath \
-            -ldflags="-s -w -X github.com/michaelsanford/wtop/internal/version.Version=${{ github.ref_name }}" \
+            -ldflags="-X github.com/michaelsanford/wtop/internal/version.Version=${{ github.ref_name }}" \
             -o wtop-${{ github.ref_name }}-${{ matrix.suffix }} \
             ./cmd/wtop/
 
@@ -125,6 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -134,6 +155,15 @@ jobs:
         with:
           path: assets/
           merge-multiple: true
+
+      - name: Create release zip archive
+        run: |
+          ZIP_NAME="wtop-${{ github.ref_name }}-windows.zip"
+          # Package all release artifacts (binaries, cosign bundles, SBOM), LICENSE, and README
+          zip -j "assets/${ZIP_NAME}" \
+            assets/* \
+            LICENSE \
+            README.md
 
       - name: Create draft GitHub Release
         env:
@@ -145,3 +175,33 @@ jobs:
             --title "${{ github.ref_name }}" \
             --generate-notes \
             --draft
+
+      - name: Open WDSI submission tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG}"
+          WDSI_URL="https://www.microsoft.com/en-us/wdsi/filesubmission"
+          ZIP_NAME="wtop-${TAG}-windows.zip"
+
+          gh issue create \
+            --repo "${REPO}" \
+            --title "Submit ${TAG} to WDSI for proactive Defender analysis" \
+            --assignee "michaelsanford" \
+            --label "winget" \
+            --body "## Proactive WDSI Submission for ${TAG}
+
+The draft release for **${TAG}** has been built and uploaded to GitHub:
+- **Draft Release**: ${RELEASE_URL}
+- **Asset to Submit**: \`${ZIP_NAME}\` (or individual \`.exe\` binaries)
+
+### Steps to Action:
+1. Download \`${ZIP_NAME}\` from the [Draft Release](${RELEASE_URL}).
+2. Submit to the [Microsoft Security Intelligence File Submission Portal](${WDSI_URL}):
+   - **Product**: Microsoft Defender Antivirus
+   - **User type**: Software developer
+   - **Reason**: Incorrectly detected / Proactive false positive verification
+3. Await Microsoft analysis verdict (typically 10–30 min).
+4. Once verified or cleared by Defender, publish the GitHub Draft Release (this triggers \`winget.yml\`) and close this issue."

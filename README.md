@@ -58,6 +58,26 @@ Or grab the latest binary from the [Releases](../../releases) page and run it di
 .\wtop.exe
 ```
 
+### If Windows Defender flags the download
+
+Some Defender definition versions have reported `wtop` as `Program:Win32/Wacapew.A!ml`
+([#20](../../issues/20)). This is a false positive.
+
+`Wacapew.A!ml` is a generic machine-learning verdict rather than a signature match, and `wtop` is an
+unsigned binary whose entire job is to enumerate every running process, read performance counters,
+and shell out to `nvidia-smi` — behaviour that a classifier scores the same way whether the program
+is a system monitor or something less welcome. Releases now carry an embedded version block and
+application manifest and ship unstripped, which removes several of those signals, but an unsigned
+binary with little download history can still be flagged.
+
+Don't take that claim on faith — verify the binary instead. `Verify-Release.ps1` checks the GitHub
+build provenance attestation, the cosign signature, and the SBOM against the latest release in one
+pass; see [Supply chain security](#supply-chain-security) below.
+
+If you hit a fresh detection, please open an issue with your Defender definition version
+(`Get-MpComputerStatus | Select-Object AntivirusSignatureVersion`) and the exact detection string.
+Both are needed to file a useful false-positive report with Microsoft.
+
 ## Build from source
 
 Requires Go 1.26+.
@@ -65,6 +85,17 @@ Requires Go 1.26+.
 ```powershell
 go build -o wtop.exe ./cmd/wtop/
 ```
+
+That produces a working binary with no embedded version block. To build one carrying the same
+Windows resources as a release, generate them first — this downloads
+[`go-winres`](https://github.com/tc-hib/go-winres) on the first run:
+
+```powershell
+go generate ./cmd/wtop/     # writes cmd/wtop/rsrc_windows_<arch>.syso (gitignored)
+go build -o wtop.exe ./cmd/wtop/
+```
+
+Local builds get version `0.0.0.0` in the resource block; only release builds stamp the real tag.
 
 ### Tests and benchmarks
 

@@ -9,6 +9,15 @@ import (
 	"github.com/michaelsanford/wtop/internal/ui"
 )
 
+// Embed the Windows VERSIONINFO block and application manifest from
+// winres/winres.json.  The generated rsrc_windows_<arch>.syso files are
+// gitignored and picked up implicitly by `go build` via their GOARCH filename
+// suffix; releases regenerate them with the tag's version numbers.  A binary
+// built without running this carries no resource block, which is one of the
+// signals that got v1.2.1 flagged by Defender's ML heuristics (see #20).
+//
+//go:generate go run github.com/tc-hib/go-winres@v0.3.3 make --arch amd64,arm64 --out rsrc
+
 func main() {
 	coll := collector.New()
 	model := ui.New(coll)
