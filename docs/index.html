@@ -423,6 +423,12 @@
     </a>
   </div>
   <div class="chips">
+    <a href="https://github.com/michaelsanford/wtop/releases" class="chip chip-green">
+      <span class="chip-dot" style="background:var(--green)"></span><span id="download-count">400+ downloads</span>
+    </a>
+    <a href="https://github.com/microsoft/winget-pkgs/tree/master/manifests/m/MichaelSanford/wtop" class="chip chip-blue">
+      winget &middot; michaelsanford.wtop
+    </a>
     <a href="https://github.com/michaelsanford/wtop/actions/workflows/ci.yml" class="chip chip-blue">
       <span class="chip-dot" style="background:var(--accent)"></span>CI
     </a>
@@ -702,16 +708,33 @@ Summary  —  v1.1.0  (winget install)
 </footer>
 
 <script>
-fetch('https://api.github.com/repos/michaelsanford/wtop/releases/latest')
+fetch('https://api.github.com/repos/michaelsanford/wtop/releases')
   .then(r => r.json())
-  .then(data => {
-    if (!data.tag_name) return;
-    const v = data.tag_name;
-    document.getElementById('latest-version').textContent = 'Latest: ' + v;
-    document.getElementById('dl-btn').href = 'https://github.com/michaelsanford/wtop/releases/tag/' + v;
-    document.querySelectorAll('pre').forEach(el => {
-      el.innerHTML = el.innerHTML.replaceAll('v1.0.0', v);
+  .then(releases => {
+    if (!Array.isArray(releases) || releases.length === 0) return;
+    const latest = releases[0];
+    if (latest && latest.tag_name) {
+      const v = latest.tag_name;
+      document.getElementById('latest-version').textContent = 'Latest: ' + v;
+      document.getElementById('dl-btn').href = 'https://github.com/michaelsanford/wtop/releases/tag/' + v;
+      document.querySelectorAll('pre').forEach(el => {
+        el.innerHTML = el.innerHTML.replaceAll('v1.0.0', v);
+      });
+    }
+    let total = 0;
+    releases.forEach(rel => {
+      if (rel.assets) {
+        rel.assets.forEach(asset => {
+          if (asset.name && asset.name.endsWith('.exe')) {
+            total += asset.download_count || 0;
+          }
+        });
+      }
     });
+    if (total > 0) {
+      const dlElem = document.getElementById('download-count');
+      if (dlElem) dlElem.textContent = total.toLocaleString() + ' downloads';
+    }
   })
   .catch(() => {});
 </script>

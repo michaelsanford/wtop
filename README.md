@@ -3,7 +3,9 @@
 [![CI](https://github.com/michaelsanford/wtop/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/michaelsanford/wtop/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/github-code-scanning/codeql)
 [![Winget](https://github.com/michaelsanford/wtop/actions/workflows/winget.yml/badge.svg)](https://github.com/michaelsanford/wtop/actions/workflows/winget.yml)
+[![Downloads](https://img.shields.io/github/downloads/michaelsanford/wtop/total?color=3fb950&label=downloads)](https://github.com/michaelsanford/wtop/releases)
 [![Release](https://img.shields.io/github/v/release/michaelsanford/wtop)](https://github.com/michaelsanford/wtop/releases)
+[![WinGet Package](https://img.shields.io/badge/winget-michaelsanford.wtop-0078d7?logo=windows&logoColor=white)](https://github.com/microsoft/winget-pkgs/tree/master/manifests/m/MichaelSanford/wtop)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078d7?logo=windows&logoColor=white)](https://github.com/michaelsanford/wtop/releases)
 
 [![Go](https://img.shields.io/badge/go-1.26%2B-00ADD8?logo=go&logoColor=white)](go.mod)
