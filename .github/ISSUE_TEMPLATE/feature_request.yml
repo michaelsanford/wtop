@@ -1,0 +1,43 @@
+name: Feature Request
+description: Propose a new feature, panel, metric, or enhancement for wtop
+title: "feat: <short summary of proposed feature>"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature for `wtop`!
+        Please review our [Contributing Guide](https://github.com/michaelsanford/wtop/blob/main/CONTRIBUTING.md) before opening a request.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of what you would like wtop to do.
+      placeholder: Describe the feature or improvement...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Use Case
+      description: What problem does this feature solve or what workflow does it enhance?
+      placeholder: Explain why this would be useful...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Proposed Implementation / Alternatives
+      description: Describe any technical ideas, API sources (e.g. PDH counters, DXGI), or alternative solutions you've considered.
+      placeholder: Any details on how this could work...
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked existing issues and feature requests to confirm this is not a duplicate.
+          required: true
