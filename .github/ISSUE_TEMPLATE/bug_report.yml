@@ -2,6 +2,8 @@ name: Bug Report
 description: Report a defect, crash, false-positive detection, or unexpected behavior in wtop
 title: "fix: <short summary of bug>"
 labels: ["bug"]
+assignees:
+  - michaelsanford
 body:
   - type: markdown
     attributes:

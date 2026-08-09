@@ -2,6 +2,8 @@ name: Feature Request
 description: Propose a new feature, panel, metric, or enhancement for wtop
 title: "feat: <short summary of proposed feature>"
 labels: ["enhancement"]
+assignees:
+  - michaelsanford
 body:
   - type: markdown
     attributes:
