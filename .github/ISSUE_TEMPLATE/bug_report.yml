@@ -1,0 +1,89 @@
+name: Bug Report
+description: Report a defect, crash, false-positive detection, or unexpected behavior in wtop
+title: "fix: <short summary of bug>"
+labels: ["bug"]
+assignees:
+  - michaelsanford
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue with `wtop`!
+        Please note our [Privacy Policy](https://github.com/michaelsanford/wtop/blob/main/PRIVACY.md): do not include sensitive credentials or confidential system information in this report.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened versus what you expected to happen...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Run `wtop.exe`
+        2. Press key '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Windows Version
+      options:
+        - Windows 11 (23H2 or newer)
+        - Windows 11 (22H2 / 21H2)
+        - Windows 10 (22H2)
+        - Windows Server 2022 / 2025
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Architecture
+      options:
+        - AMD64 (x86_64)
+        - ARM64
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: wtop Version
+      description: The version of wtop you are running (e.g. `1.2.1` or output from winget/release).
+      placeholder: e.g. v1.2.1
+    validations:
+      required: true
+
+  - type: input
+    id: defender-version
+    attributes:
+      label: Antivirus / Defender Definition Version (if reporting false-positive detection)
+      description: Run `(Get-MpComputerStatus).AntivirusSignatureVersion` in PowerShell if Windows Defender flagged the binary.
+      placeholder: e.g. 1.457.57.0
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal Output / Panic Stack Trace
+      description: Paste any console error messages or panic traces here.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues to confirm this is not a duplicate.
+          required: true
+        - label: I have verified that this report contains no sensitive credentials or personal data per [PRIVACY.md](https://github.com/michaelsanford/wtop/blob/main/PRIVACY.md).
+          required: true

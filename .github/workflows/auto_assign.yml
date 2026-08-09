@@ -1,0 +1,23 @@
+name: Auto Assign
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  auto-assign:
+    name: Assign to Maintainer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add assignee
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: ${{ github.event.issue.html_url || github.event.pull_request.html_url }}
+        run: |
+          gh issue edit "$TARGET_URL" --add-assignee "michaelsanford"
