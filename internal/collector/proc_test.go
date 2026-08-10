@@ -183,3 +183,39 @@ func TestSelfChainPIDs_NilMaps(t *testing.T) {
 		t.Errorf("expected an empty chain, got %v", pids(got))
 	}
 }
+
+func TestCompareNativeVsFallback(t *testing.T) {
+	native, err := collectProcsNative()
+	if err != nil {
+		t.Fatalf("collectProcsNative: %v", err)
+	}
+	fallback, err := collectProcsFallback()
+	if err != nil {
+		t.Fatalf("collectProcsFallback: %v", err)
+	}
+
+	nativeByPID := make(map[int32]ProcSnapshot, len(native))
+	for _, p := range native {
+		nativeByPID[p.PID] = p
+	}
+
+	fallbackByPID := make(map[int32]ProcSnapshot, len(fallback))
+	for _, p := range fallback {
+		fallbackByPID[p.PID] = p
+	}
+
+	t.Logf("Native count: %d, Fallback count: %d", len(native), len(fallback))
+
+	mismatchedPPID := 0
+	for pid, fProc := range fallbackByPID {
+		if nProc, ok := nativeByPID[pid]; ok {
+			if fProc.PPID != nProc.PPID {
+				t.Logf("PID %d (%s): Fallback PPID=%d, Native PPID=%d", pid, fProc.Name, fProc.PPID, nProc.PPID)
+				mismatchedPPID++
+			}
+		} else {
+			t.Logf("PID %d (%s) in fallback but not in native", pid, fProc.Name)
+		}
+	}
+	t.Logf("Mismatched PPIDs: %d", mismatchedPPID)
+}

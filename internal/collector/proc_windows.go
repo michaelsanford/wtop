@@ -228,20 +228,10 @@ func (pt *procTracker) collect() ([]ProcSnapshot, error) {
 		snaps = append(snaps, s)
 	}
 
-	// Sort by CPU% descending, limit to maxProcs
+	// Sort by CPU% descending
 	sort.Slice(snaps, func(i, j int) bool {
 		return snaps[i].CPUPct > snaps[j].CPUPct
 	})
-
-	if len(snaps) > maxProcs {
-		cut := snaps[maxProcs:]
-		snaps = snaps[:maxProcs:maxProcs]
-		for _, s := range cut {
-			if s.Self {
-				snaps = append(snaps, s)
-			}
-		}
-	}
 
 	return snaps, nil
 }
