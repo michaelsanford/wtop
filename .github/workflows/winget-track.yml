@@ -172,5 +172,5 @@ jobs:
                 echo "Issue #$NUM: forwarded downstream comment #$CID."
               done < <(echo "$PR_COMMENTS" | jq -c '.[]')
             fi
-          done < <(gh issue list --repo "$REPO" --label winget --state open \
+          done < <(gh issue list --repo "$REPO" --label winget-tracker --state open \
             --json number,title,body --jq '.[] | @base64')

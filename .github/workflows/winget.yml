@@ -126,11 +126,11 @@ jobs:
             "This issue will close automatically once the downstream PR is merged.")
 
           # Ensure the label exists, then open the tracker
-          gh label create winget --repo "$REPO" \
+          gh label create winget-tracker --repo "$REPO" \
             --color FFA500 --description "winget release tracking" 2>/dev/null || true
 
           gh issue create \
             --repo "$REPO" \
             --title "Await Microsoft approval for Winget update ${TAG}" \
             --body "$BODY" \
-            --label winget
+            --label winget-tracker
