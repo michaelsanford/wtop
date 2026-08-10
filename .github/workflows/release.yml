@@ -186,22 +186,25 @@ jobs:
           WDSI_URL="https://www.microsoft.com/en-us/wdsi/filesubmission"
           ZIP_NAME="wtop-${TAG}-windows.zip"
 
+          BODY=$(printf '%s\n' \
+            "## Proactive WDSI Submission for ${TAG}" \
+            "" \
+            "The draft release for **${TAG}** has been built and uploaded to GitHub:" \
+            "- **Draft Release**: ${RELEASE_URL}" \
+            "- **Asset to Submit**: \`${ZIP_NAME}\` (or individual \`.exe\` binaries)" \
+            "" \
+            "### Steps to Action:" \
+            "1. Download \`${ZIP_NAME}\` from the [Draft Release](${RELEASE_URL})." \
+            "2. Submit to the [Microsoft Security Intelligence File Submission Portal](${WDSI_URL}):" \
+            "   - **Product**: Microsoft Defender Antivirus" \
+            "   - **User type**: Software developer" \
+            "   - **Reason**: Incorrectly detected / Proactive false positive verification" \
+            "3. Await Microsoft analysis verdict (typically 10–30 min)." \
+            "4. Once verified or cleared by Defender, publish the GitHub Draft Release (this triggers \`winget.yml\`) and close this issue.")
+
           gh issue create \
             --repo "${REPO}" \
             --title "Submit ${TAG} to WDSI for proactive Defender analysis" \
             --assignee "michaelsanford" \
             --label "winget" \
-            --body "## Proactive WDSI Submission for ${TAG}
-
-The draft release for **${TAG}** has been built and uploaded to GitHub:
-- **Draft Release**: ${RELEASE_URL}
-- **Asset to Submit**: \`${ZIP_NAME}\` (or individual \`.exe\` binaries)
-
-### Steps to Action:
-1. Download \`${ZIP_NAME}\` from the [Draft Release](${RELEASE_URL}).
-2. Submit to the [Microsoft Security Intelligence File Submission Portal](${WDSI_URL}):
-   - **Product**: Microsoft Defender Antivirus
-   - **User type**: Software developer
-   - **Reason**: Incorrectly detected / Proactive false positive verification
-3. Await Microsoft analysis verdict (typically 10–30 min).
-4. Once verified or cleared by Defender, publish the GitHub Draft Release (this triggers \`winget.yml\`) and close this issue."
+            --body "${BODY}"
