@@ -2,4 +2,8 @@
 
 package collector
 
-func augmentMemSnapshot(_ *MemSnapshot) {}
+func collectMemNative() (MemSnapshot, error) {
+	return collectMemFallback()
+}
+
+func augmentMemSnapshot(s *MemSnapshot) {}

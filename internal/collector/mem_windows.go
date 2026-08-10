@@ -4,6 +4,7 @@ package collector
 
 import (
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -77,8 +78,60 @@ func getMemPDH() *memPDHQuery {
 	return memPDHInst
 }
 
+func collectMemNative() (MemSnapshot, error) {
+	var ms memoryStatusEx
+	ms.Length = uint32(unsafe.Sizeof(ms))
+	if r, _, _ := procGlobalMemoryStatusEx.Call(uintptr(unsafe.Pointer(&ms))); r == 0 {
+		return MemSnapshot{}, syscall.GetLastError()
+	}
+
+	used := ms.TotalPhys - ms.AvailPhys
+	ramPct := 0.0
+	if ms.TotalPhys > 0 {
+		ramPct = float64(used) / float64(ms.TotalPhys) * 100.0
+	}
+
+	swapUsed := ms.TotalPageFile - ms.AvailPageFile
+	swapPct := 0.0
+	if ms.TotalPageFile > 0 {
+		swapPct = float64(swapUsed) / float64(ms.TotalPageFile) * 100.0
+	}
+
+	snap := MemSnapshot{
+		RAMUsedBytes:     used,
+		RAMTotalBytes:    ms.TotalPhys,
+		RAMPct:           ramPct,
+		SwapUsedBytes:    swapUsed,
+		SwapTotalBytes:   ms.TotalPageFile,
+		SwapPct:          swapPct,
+		CommitLimitBytes: ms.TotalPageFile,
+		CommittedBytes:   swapUsed,
+	}
+
+	// Memory composition via persistent PDH counters
+	pdh := getMemPDH()
+	if pdh != nil {
+		if r, _, _ := procPdhCollectQueryData.Call(pdh.query); r == 0 {
+			readLarge := func(h uintptr) uint64 {
+				var v pdhFmtCounterValue
+				r, _, _ := procPdhGetFormattedCounterValue.Call(h, pdhFmtLarge, 0, uintptr(unsafe.Pointer(&v)))
+				if r != 0 || v.CStatus != 0 || v.Large < 0 {
+					return 0
+				}
+				return uint64(v.Large)
+			}
+			snap.ModifiedBytes = readLarge(pdh.hMod)
+			snap.StandbyBytes = readLarge(pdh.hStandby)
+			snap.FreeBytes = readLarge(pdh.hFree)
+			snap.RAMCachedBytes = snap.StandbyBytes
+		}
+	}
+
+	return snap, nil
+}
+
 func augmentMemSnapshot(s *MemSnapshot) {
-	// Committed / commit limit via GlobalMemoryStatusEx.
+	// Preserved for fallback compatibility
 	var ms memoryStatusEx
 	ms.Length = uint32(unsafe.Sizeof(ms))
 	if r, _, _ := procGlobalMemoryStatusEx.Call(uintptr(unsafe.Pointer(&ms))); r != 0 {
@@ -86,7 +139,6 @@ func augmentMemSnapshot(s *MemSnapshot) {
 		s.CommittedBytes = ms.TotalPageFile - ms.AvailPageFile
 	}
 
-	// Memory composition via persistent PDH counters.
 	pdh := getMemPDH()
 	if pdh == nil {
 		return

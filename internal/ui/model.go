@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -17,10 +16,28 @@ import (
 	"github.com/michaelsanford/wtop/internal/version"
 )
 
-var reANSI = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
-
 func stripANSI(s string) string {
-	return reANSI.ReplaceAllString(s, "")
+	if !strings.Contains(s, "\x1b") {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	inEscape := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if inEscape {
+			if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
+				inEscape = false
+			}
+			continue
+		}
+		if c == 0x1b {
+			inEscape = true
+			continue
+		}
+		b.WriteByte(c)
+	}
+	return b.String()
 }
 
 // Layout: CPU full-width on top; Mem + GPU side-by-side below; process table.
@@ -84,7 +101,7 @@ type Model struct {
 	keys KeyMap
 }
 
-// New returns an initialised Model.
+// New returns an initialised Model with an initial snapshot pre-populated for instant display.
 func New(coll collector.Collector) Model {
 	host, _ := os.Hostname()
 	initAsc := sortDefaultAsc[SortByCPU]
@@ -95,7 +112,7 @@ func New(coll collector.Collector) Model {
 	)
 	tbl.SetStyles(panels.TableStyles())
 
-	return Model{
+	m := Model{
 		coll:     coll,
 		keys:     defaultKeyMap,
 		hostname: host,
@@ -103,11 +120,18 @@ func New(coll collector.Collector) Model {
 		tableH:   10,
 		sortAsc:  initAsc,
 	}
+
+	if coll != nil {
+		if snap, err := coll.Collect(); err == nil {
+			m.snap = snap
+			m.tbl.SetRows(m.buildRows())
+		}
+	}
+
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
-	// Collect immediately on startup rather than waiting for the first tick,
-	// so data appears as soon as the terminal is ready.
 	return tea.Batch(collectCmd(m.coll), tick())
 }
 
