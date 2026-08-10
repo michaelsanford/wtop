@@ -13,6 +13,7 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: write
 
 env:
   PACKAGE_ID: michaelsanford.wtop
@@ -34,6 +35,15 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+
+          TRACKERS=$(gh issue list --repo "$REPO" --label winget-tracker --state open \
+            --json number,title,body --jq '.[] | @base64')
+
+          if [ -z "$TRACKERS" ]; then
+            echo "No open winget tracking issues found. Disabling winget-track workflow until next release..."
+            gh workflow disable winget-track.yml --repo "$REPO" || true
+            exit 0
+          fi
 
           # Fed by process substitution rather than a pipe so the loop body runs in
           # this shell and can keep state across iterations.
@@ -172,5 +182,12 @@ jobs:
                 echo "Issue #$NUM: forwarded downstream comment #$CID."
               done < <(echo "$PR_COMMENTS" | jq -c '.[]')
             fi
-          done < <(gh issue list --repo "$REPO" --label winget-tracker --state open \
-            --json number,title,body --jq '.[] | @base64')
+          done < <(echo "$TRACKERS")
+
+          REMAINING=$(gh issue list --repo "$REPO" --label winget-tracker --state open --json number --jq 'length')
+          if [ "$REMAINING" -eq 0 ]; then
+            echo "All winget trackers resolved and closed. Disabling winget-track workflow until next release..."
+            gh workflow disable winget-track.yml --repo "$REPO" || true
+          else
+            echo "$REMAINING winget tracker(s) still open. Keeping workflow active."
+          fi

@@ -35,6 +35,7 @@ jobs:
     permissions:
       contents: read # release compare API
       issues: write # tracking issue
+      actions: write # enable winget-track workflow
 
     steps:
       - name: Draft the downstream PR and open a tracking issue
@@ -134,3 +135,6 @@ jobs:
             --title "Await Microsoft approval for Winget update ${TAG}" \
             --body "$BODY" \
             --label winget-tracker
+
+          echo "Enabling winget-track workflow..."
+          gh workflow enable winget-track.yml --repo "$REPO" || true
