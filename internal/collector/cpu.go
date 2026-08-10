@@ -7,6 +7,10 @@ import (
 )
 
 func collectCPU() (CPUSnapshot, error) {
+	return collectCPUNative()
+}
+
+func collectCPUFallback() (CPUSnapshot, error) {
 	var (
 		perCore    []float64
 		aggrPct    float64

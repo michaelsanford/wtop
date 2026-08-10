@@ -3,8 +3,6 @@ package collector
 import (
 	"sync"
 	"time"
-
-	"github.com/shirou/gopsutil/v4/cpu"
 )
 
 // Snapshot is an immutable point-in-time capture of all system metrics.
@@ -47,8 +45,8 @@ type GPUSource int
 
 const (
 	GPUSourceNone       GPUSource = iota
-	GPUSourceNvidiaSmi            // nvidia-smi subprocess
-	GPUSourcePowerShell           // PowerShell Get-Counter fallback
+	GPUSourceNvidiaSmi            // nvidia-smi / NVML
+	GPUSourcePowerShell           // PowerShell / DXGI fallback
 )
 
 // GPUSnapshot holds best-effort GPU utilisation.
@@ -104,8 +102,8 @@ type defaultCollector struct {
 	gpuRefreshing  bool // true while a background GPU query is in flight
 }
 
-// New returns a new Collector and immediately begins pre-warming Windows PDH
-// CPU counters and the network baseline in the background, so the first
+// New returns a new Collector and immediately begins pre-warming counters
+// and the network baseline in the background, so the first
 // visible Collect() call returns quickly.
 func New() Collector {
 	c := &defaultCollector{
@@ -115,11 +113,10 @@ func New() Collector {
 	return c
 }
 
-// warmup primes gopsutil's internal PDH CPU counters and captures the initial
-// network baseline.  It runs once in the background immediately after New().
+// warmup primes CPU counters and captures the initial network baseline.
+// It runs once in the background immediately after New().
 func (c *defaultCollector) warmup() {
-	_, _ = cpu.Percent(0, true)
-	_, _ = cpu.Percent(0, false)
+	_, _ = collectCPU()
 	_, newBytes, newTime := collectNet(nil, time.Time{})
 	c.mu.Lock()
 	c.prevNetBytes = newBytes
@@ -127,38 +124,40 @@ func (c *defaultCollector) warmup() {
 	c.mu.Unlock()
 }
 
-type netResult struct {
-	net      []NetSnapshot
-	newBytes map[string][2]uint64
-	newTime  time.Time
-}
-
-// Collect gathers all sensors in parallel.  GPU metrics are refreshed at most
-// every 5 seconds (subprocess overhead); the refresh runs in the background so
-// it never blocks the other collectors.  On the first call the GPU snapshot is
-// empty and fills in ~3–5 s later.
+// Collect gathers all sensors in parallel. GPU metrics are refreshed in the
+// background every 5 seconds so slow queries never block the UI.
 func (c *defaultCollector) Collect() (Snapshot, error) {
-	cpuCh := make(chan CPUSnapshot, 1)
-	memCh := make(chan MemSnapshot, 1)
-	netCh := make(chan netResult, 1)
-	procsCh := make(chan []ProcSnapshot, 1)
+	var (
+		cpuSnap  CPUSnapshot
+		memSnap  MemSnapshot
+		netSnap  []NetSnapshot
+		newBytes map[string][2]uint64
+		newTime  time.Time
+		procs    []ProcSnapshot
+		wg       sync.WaitGroup
+	)
 
-	go func() { s, _ := collectCPU(); cpuCh <- s }()
-	go func() { s, _ := collectMem(); memCh <- s }()
-	go func() { s, _ := collectProcs(); procsCh <- s }()
-
+	wg.Add(4)
 	go func() {
+		defer wg.Done()
+		cpuSnap, _ = collectCPU()
+	}()
+	go func() {
+		defer wg.Done()
+		memSnap, _ = collectMem()
+	}()
+	go func() {
+		defer wg.Done()
 		c.mu.Lock()
 		prev, prevT := c.prevNetBytes, c.prevNetTime
 		c.mu.Unlock()
-		net, newBytes, newTime := collectNet(prev, prevT)
-		netCh <- netResult{net, newBytes, newTime}
+		netSnap, newBytes, newTime = collectNet(prev, prevT)
+	}()
+	go func() {
+		defer wg.Done()
+		procs, _ = collectProcs()
 	}()
 
-	// GPU: refresh every 5 s in a background goroutine so the slow subprocess
-	// (PowerShell/nvidia-smi) never blocks CPU, Mem, Net, or Procs display.
-	// gpuRefreshing prevents a second goroutine launching before the first
-	// completes.
 	c.mu.Lock()
 	stale := time.Since(c.gpuLastQueried) > 5*time.Second
 	gpus := c.gpuCache
@@ -175,22 +174,19 @@ func (c *defaultCollector) Collect() (Snapshot, error) {
 	}
 	c.mu.Unlock()
 
-	cpuSnap := <-cpuCh
-	mem := <-memCh
-	nr := <-netCh
-	procs := <-procsCh
+	wg.Wait()
 
 	c.mu.Lock()
-	c.prevNetBytes = nr.newBytes
-	c.prevNetTime = nr.newTime
+	c.prevNetBytes = newBytes
+	c.prevNetTime = newTime
 	c.mu.Unlock()
 
 	return Snapshot{
 		CollectedAt: time.Now(),
 		CPU:         cpuSnap,
-		Mem:         mem,
+		Mem:         memSnap,
 		GPUs:        gpus,
-		Net:         nr.net,
+		Net:         netSnap,
 		Procs:       procs,
 	}, nil
 }

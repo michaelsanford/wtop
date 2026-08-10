@@ -21,7 +21,59 @@ var (
 
 	modDxgi                = windows.NewLazySystemDLL("dxgi.dll")
 	procCreateDXGIFactory1 = modDxgi.NewProc("CreateDXGIFactory1")
+
+	modNvml                               = windows.NewLazySystemDLL("nvml.dll")
+	procNvmlInit_v2                       = modNvml.NewProc("nvmlInit_v2")
+	procNvmlInit                          = modNvml.NewProc("nvmlInit")
+	procNvmlDeviceGetCount_v2             = modNvml.NewProc("nvmlDeviceGetCount_v2")
+	procNvmlDeviceGetCount                = modNvml.NewProc("nvmlDeviceGetCount")
+	procNvmlDeviceGetHandleByIndex_v2     = modNvml.NewProc("nvmlDeviceGetHandleByIndex_v2")
+	procNvmlDeviceGetHandleByIndex        = modNvml.NewProc("nvmlDeviceGetHandleByIndex")
+	procNvmlDeviceGetName                 = modNvml.NewProc("nvmlDeviceGetName")
+	procNvmlDeviceGetUtilizationRates     = modNvml.NewProc("nvmlDeviceGetUtilizationRates")
+	procNvmlDeviceGetMemoryInfo           = modNvml.NewProc("nvmlDeviceGetMemoryInfo")
+	procNvmlDeviceGetTemperature          = modNvml.NewProc("nvmlDeviceGetTemperature")
+	procNvmlDeviceGetPowerUsage           = modNvml.NewProc("nvmlDeviceGetPowerUsage")
+	procNvmlDeviceGetEnforcedPowerLimit   = modNvml.NewProc("nvmlDeviceGetEnforcedPowerLimit")
+	procNvmlDeviceGetPowerManagementLimit = modNvml.NewProc("nvmlDeviceGetPowerManagementLimit")
+	procNvmlDeviceGetClockInfo            = modNvml.NewProc("nvmlDeviceGetClockInfo")
+	procNvmlDeviceGetFanSpeed             = modNvml.NewProc("nvmlDeviceGetFanSpeed")
+	procNvmlDeviceGetPerformanceState     = modNvml.NewProc("nvmlDeviceGetPerformanceState")
 )
+
+type nvmlUtilization struct {
+	GPU    uint32
+	Memory uint32
+}
+
+type nvmlMemory struct {
+	Total uint64
+	Free  uint64
+	Used  uint64
+}
+
+var (
+	nvmlOnce      sync.Once
+	nvmlAvailable bool
+)
+
+func initNvml() bool {
+	nvmlOnce.Do(func() {
+		var initProc *windows.LazyProc
+		if procNvmlInit_v2.Find() == nil {
+			initProc = procNvmlInit_v2
+		} else if procNvmlInit.Find() == nil {
+			initProc = procNvmlInit
+		} else {
+			return
+		}
+		r, _, _ := initProc.Call()
+		if r == 0 {
+			nvmlAvailable = true
+		}
+	})
+	return nvmlAvailable
+}
 
 type LUID struct {
 	LowPart  uint32
@@ -81,21 +133,132 @@ func getGpuPDH() *gpuPDHQuery {
 	return gpuPDHInst
 }
 
-// collectAllGPUs queries NVIDIA GPUs via nvidia-smi and all other GPUs via
+// collectAllGPUs queries NVIDIA GPUs via direct NVML / nvidia-smi and all other GPUs via
 // native DXGI/PDH APIs, running both in parallel and merging the results.
 func collectAllGPUs() []GPUSnapshot {
 	nvidiaCh := make(chan []GPUSnapshot, 1)
 	otherCh := make(chan []GPUSnapshot, 1)
-	go func() { nvidiaCh <- queryAllNvidiaSmi() }()
+	go func() { nvidiaCh <- queryAllNvidia() }()
 	go func() { otherCh <- queryNonNvidiaGPUs() }()
 	return append(<-nvidiaCh, <-otherCh...)
+}
+
+func queryAllNvidia() []GPUSnapshot {
+	if !initNvml() {
+		return queryAllNvidiaSmiSubprocess()
+	}
+
+	var getCountProc, getHandleProc *windows.LazyProc
+	if procNvmlDeviceGetCount_v2.Find() == nil {
+		getCountProc = procNvmlDeviceGetCount_v2
+	} else if procNvmlDeviceGetCount.Find() == nil {
+		getCountProc = procNvmlDeviceGetCount
+	} else {
+		return nil
+	}
+
+	if procNvmlDeviceGetHandleByIndex_v2.Find() == nil {
+		getHandleProc = procNvmlDeviceGetHandleByIndex_v2
+	} else if procNvmlDeviceGetHandleByIndex.Find() == nil {
+		getHandleProc = procNvmlDeviceGetHandleByIndex
+	} else {
+		return nil
+	}
+
+	var count uint32
+	r, _, _ := getCountProc.Call(uintptr(unsafe.Pointer(&count)))
+	if r != 0 || count == 0 {
+		return nil
+	}
+
+	snaps := make([]GPUSnapshot, 0, count)
+	for i := uint32(0); i < count; i++ {
+		var dev uintptr
+		r, _, _ := getHandleProc.Call(uintptr(i), uintptr(unsafe.Pointer(&dev)))
+		if r != 0 {
+			continue
+		}
+
+		nameBuf := make([]byte, 64)
+		if procNvmlDeviceGetName.Find() == nil {
+			_, _, _ = procNvmlDeviceGetName.Call(dev, uintptr(unsafe.Pointer(&nameBuf[0])), 64)
+		}
+		name := windows.ByteSliceToString(nameBuf)
+
+		var util nvmlUtilization
+		if procNvmlDeviceGetUtilizationRates.Find() == nil {
+			_, _, _ = procNvmlDeviceGetUtilizationRates.Call(dev, uintptr(unsafe.Pointer(&util)))
+		}
+
+		var mem nvmlMemory
+		if procNvmlDeviceGetMemoryInfo.Find() == nil {
+			_, _, _ = procNvmlDeviceGetMemoryInfo.Call(dev, uintptr(unsafe.Pointer(&mem)))
+		}
+
+		var temp uint32
+		if procNvmlDeviceGetTemperature.Find() == nil {
+			_, _, _ = procNvmlDeviceGetTemperature.Call(dev, 0, uintptr(unsafe.Pointer(&temp)))
+		}
+
+		var power uint32
+		if procNvmlDeviceGetPowerUsage.Find() == nil {
+			_, _, _ = procNvmlDeviceGetPowerUsage.Call(dev, uintptr(unsafe.Pointer(&power)))
+		}
+
+		var powerLimit uint32
+		if procNvmlDeviceGetEnforcedPowerLimit.Find() == nil {
+			_, _, _ = procNvmlDeviceGetEnforcedPowerLimit.Call(dev, uintptr(unsafe.Pointer(&powerLimit)))
+		} else if procNvmlDeviceGetPowerManagementLimit.Find() == nil {
+			_, _, _ = procNvmlDeviceGetPowerManagementLimit.Call(dev, uintptr(unsafe.Pointer(&powerLimit)))
+		}
+
+		var gfxClock uint32
+		if procNvmlDeviceGetClockInfo.Find() == nil {
+			_, _, _ = procNvmlDeviceGetClockInfo.Call(dev, 0, uintptr(unsafe.Pointer(&gfxClock)))
+		}
+
+		var memClock uint32
+		if procNvmlDeviceGetClockInfo.Find() == nil {
+			_, _, _ = procNvmlDeviceGetClockInfo.Call(dev, 2, uintptr(unsafe.Pointer(&memClock)))
+		}
+
+		var fanSpeed uint32
+		if procNvmlDeviceGetFanSpeed.Find() == nil {
+			_, _, _ = procNvmlDeviceGetFanSpeed.Call(dev, uintptr(unsafe.Pointer(&fanSpeed)))
+		}
+
+		var pState uint32
+		pStateStr := ""
+		if procNvmlDeviceGetPerformanceState.Find() == nil {
+			if r, _, _ := procNvmlDeviceGetPerformanceState.Call(dev, uintptr(unsafe.Pointer(&pState))); r == 0 {
+				pStateStr = fmt.Sprintf("P%d", pState)
+			}
+		}
+
+		snaps = append(snaps, GPUSnapshot{
+			Name:        name,
+			UtilPct:     float64(util.GPU),
+			MemUtilPct:  float64(util.Memory),
+			MemUsedMiB:  mem.Used / (1024 * 1024),
+			MemTotMiB:   mem.Total / (1024 * 1024),
+			TempC:       float64(temp),
+			PowerDrawW:  float64(power) / 1000.0,
+			PowerLimitW: float64(powerLimit) / 1000.0,
+			GfxClockMHz: uint64(gfxClock),
+			MemClockMHz: uint64(memClock),
+			FanPct:      float64(fanSpeed),
+			PState:      pStateStr,
+			Source:      GPUSourceNvidiaSmi,
+		})
+	}
+	return snaps
 }
 
 // nvidia-smi query fields — order must match parseNvidiaRow below.
 const nvidiaSmiQuery = "name,utilization.gpu,utilization.memory,memory.used,memory.total,temperature.gpu,power.draw,power.limit,clocks.current.graphics,clocks.current.memory,fan.speed,pstate"
 
-// queryAllNvidiaSmi runs nvidia-smi once and returns one GPUSnapshot per GPU.
-func queryAllNvidiaSmi() []GPUSnapshot {
+// queryAllNvidiaSmiSubprocess runs nvidia-smi once as a fallback.
+func queryAllNvidiaSmiSubprocess() []GPUSnapshot {
 	if _, err := exec.LookPath("nvidia-smi"); err != nil {
 		return nil
 	}
@@ -146,7 +309,9 @@ func parseNvidiaRow(line string) (GPUSnapshot, bool) {
 
 func queryNonNvidiaGPUs() []GPUSnapshot {
 	excludeNvidia := false
-	if _, err := exec.LookPath("nvidia-smi"); err == nil {
+	if initNvml() {
+		excludeNvidia = true
+	} else if _, err := exec.LookPath("nvidia-smi"); err == nil {
 		excludeNvidia = true
 	}
 

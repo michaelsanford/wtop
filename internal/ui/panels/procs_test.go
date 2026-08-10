@@ -329,3 +329,18 @@ func TestBuildTreeRows_MarkerFollowsTheConnector(t *testing.T) {
 		t.Errorf("non-self root: got %q, want %q", got, want)
 	}
 }
+
+func TestBuildTreeRows_Live(t *testing.T) {
+	c := collector.New()
+	snap, err := c.Collect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := BuildTreeRows(snap.Procs, sortCPU, false)
+	t.Logf("Total tree rows: %d", len(rows))
+	for i, r := range rows {
+		if i < 40 {
+			t.Logf("[%3d] PID=%-6s Name=%s", i, r[0], r[1])
+		}
+	}
+}

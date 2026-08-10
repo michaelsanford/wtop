@@ -10,6 +10,13 @@ func collectNet(
 	prevBytes map[string][2]uint64,
 	prevTime time.Time,
 ) ([]NetSnapshot, map[string][2]uint64, time.Time) {
+	return collectNetNative(prevBytes, prevTime)
+}
+
+func collectNetFallback(
+	prevBytes map[string][2]uint64,
+	prevTime time.Time,
+) ([]NetSnapshot, map[string][2]uint64, time.Time) {
 	now := time.Now()
 	counters, err := psnet.IOCounters(true)
 	if err != nil {

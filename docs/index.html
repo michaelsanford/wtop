@@ -482,17 +482,17 @@
       <div class="feat">
         <div class="feat-icon fi-p">◈</div>
         <h3>GPU</h3>
-        <p>Automatic detection: full telemetry (util, VRAM, temp, power, clocks, fan, P-state) from NVIDIA via <code>nvidia-smi</code>, or utilisation from AMD/Intel via <code>Get-Counter</code>. Loads in the background — other panels appear immediately while the GPU panel populates.</p>
+        <p>Automatic detection: full telemetry (util, VRAM, temp, power, clocks, fan, P-state) from NVIDIA via in-process NVML with zero subprocess overhead (falling back to DXGI, PDH, or <code>nvidia-smi</code>), or utilisation from AMD/Intel via PDH.</p>
       </div>
       <div class="feat">
         <div class="feat-icon fi-o">↕</div>
         <h3>Network</h3>
-        <p>Per-interface send/receive rates in real time. Loopback and zero-traffic interfaces hidden automatically. Delta-per-second calculation handles clock resets cleanly.</p>
+        <p>Per-interface send/receive rates in real time via direct <code>GetIfTable2</code>. Loopback and zero-traffic interfaces hidden automatically. Delta-per-second calculation handles clock resets cleanly.</p>
       </div>
       <div class="feat">
         <div class="feat-icon fi-r">☰</div>
         <h3>Process list</h3>
-        <p>Top processes sortable by CPU%, memory, PID, or name. Toggle an htop-style tree view (<kbd>t</kbd>) to see parent&thinsp;→&thinsp;child relationships with box-drawing connectors. Kill any selected process with a confirmation step.</p>
+        <p>High-performance native single-syscall Windows NT query. Top processes sortable by CPU%, memory, PID, or name. Toggle an htop-style tree view (<kbd>t</kbd>) to see full parent&thinsp;→&thinsp;child relationships with box-drawing connectors across the entire system. Kill any selected process with a confirmation step.</p>
         <p>A <code>◆</code> marks <code>wtop</code> itself and the terminal session hosting it &mdash; the shells and terminal host above it &mdash; so the monitor's own cost is visible and your session is hard to kill by accident. Those processes stay pinned in the list even when idle. The chain stops below the session root: <code>explorer.exe</code> parents nearly everything interactive, so marking it would say nothing.</p>
       </div>
       <div class="feat">

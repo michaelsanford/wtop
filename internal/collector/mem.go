@@ -5,6 +5,10 @@ import (
 )
 
 func collectMem() (MemSnapshot, error) {
+	return collectMemNative()
+}
+
+func collectMemFallback() (MemSnapshot, error) {
 	vm, err := mem.VirtualMemory()
 	if err != nil {
 		return MemSnapshot{}, err

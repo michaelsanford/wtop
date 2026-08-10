@@ -13,6 +13,10 @@ import (
 const maxProcs = 128
 
 func collectProcs() ([]ProcSnapshot, error) {
+	return collectProcsNative()
+}
+
+func collectProcsFallback() ([]ProcSnapshot, error) {
 	procs, err := process.Processes()
 	if err != nil {
 		return nil, err
