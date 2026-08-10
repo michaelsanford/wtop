@@ -28,10 +28,10 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 ## Features
 
 - **CPU** — per-core utilisation bars with colour coding (green → yellow → red)
-- **Memory** — RAM and swap bars in GiB
-- **GPU** — best-effort: NVIDIA via `nvidia-smi`, AMD/Intel via PowerShell `Get-Counter`; loads in the background on startup so other panels appear immediately
-- **Network** — shows per-interface send/receive rates in real time; loopback and zero-traffic interfaces are hidden automatically (automatically displays when the terminal is 110+ columns wide)
-- **Process list** — flat or htop-style tree view (`t`); sortable by CPU%, memory, PID, or name; kill selected process
+- **Memory** — RAM and swap bars in GiB via direct Win32 memory status
+- **GPU** — in-process NVML for NVIDIA GPUs (sub-millisecond, zero subprocess overhead) with DXGI, PDH, and `nvidia-smi` fallbacks; AMD/Intel via PDH
+- **Network** — shows per-interface send/receive rates in real time via direct `GetIfTable2`; loopback and zero-traffic interfaces are hidden automatically (automatically displays when the terminal is 110+ columns wide)
+- **Process list** — high-performance native Windows NT single-syscall collection; flat or htop-style tree view (`t`) with full process hierarchies; sortable by CPU%, memory, PID, or name; kill selected process
 - **Self-ancestry marker** — a `◆` marks `wtop` itself and the terminal session hosting it (the shells and terminal host above it), so you can see the monitor's own cost and avoid killing your session by mistake. Those processes stay in the list even when idle. The walk stops below the session root — `explorer.exe` parents nearly everything interactive, so marking it would say nothing
 
 ## Keyboard shortcuts
