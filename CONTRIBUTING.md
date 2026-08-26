@@ -112,7 +112,7 @@ Collects active thread count per process via Win32 process counters.
 
 1. Open a pull request against `main`.
 2. Complete the checklist in the pull request template.
-3. Ensure all CI checks (`Build & Test`, `CodeQL`, `Qodana`) pass cleanly.
+3. Ensure all CI checks (`Build & Test`, `CodeQL`) pass cleanly.
 4. Maintainers will review your PR and provide constructive feedback.
 
 ---
