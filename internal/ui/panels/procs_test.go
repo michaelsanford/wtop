@@ -14,10 +14,12 @@ import (
 // column indices — the two numberings differ and are bridged only by SortColFor.
 // Mixing them up silently sorts by the wrong field, so spell them out here.
 const (
-	sortCPU  = 0
-	sortMem  = 1
-	sortPID  = 2
-	sortName = 3
+	sortCPU   = 0
+	sortMem   = 1
+	sortPID   = 2
+	sortName  = 3
+	sortDiskR = 4
+	sortDiskW = 5
 )
 
 func proc(pid, ppid int32, name string, cpu, memMB float64) collector.ProcSnapshot {
@@ -141,6 +143,43 @@ func TestBuildTreeRows_Connectors(t *testing.T) {
 	}
 }
 
+// sortTreeNodes switches on bare integers while buildSortedRows switches on the
+// typed SortField constants; nothing but these tests keeps the two numberings in
+// step, so every field needs coverage in the tree view too.
+func TestBuildTreeRows_SiblingsSortedByDiskIO(t *testing.T) {
+	// Read and write rankings are inverted so sorting by the wrong one of the two
+	// produces a visibly different order rather than an accidental match.
+	procs := []collector.ProcSnapshot{
+		{PID: 1, PPID: 0, Name: "root"},
+		{PID: 2, PPID: 1, Name: "reader", ReadBps: 900, WriteBps: 100},
+		{PID: 3, PPID: 1, Name: "writer", ReadBps: 100, WriteBps: 900},
+		{PID: 4, PPID: 1, Name: "middle", ReadBps: 500, WriteBps: 500},
+	}
+	tests := []struct {
+		name      string
+		sortBy    int
+		ascending bool
+		want      []string
+	}{
+		{"disk read descending", sortDiskR, false, []string{"1", "2", "4", "3"}},
+		{"disk read ascending", sortDiskR, true, []string{"1", "3", "4", "2"}},
+		{"disk write descending", sortDiskW, false, []string{"1", "3", "4", "2"}},
+		{"disk write ascending", sortDiskW, true, []string{"1", "2", "4", "3"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rows := BuildTreeRows(procs, tt.sortBy, tt.ascending)
+			got := make([]string, len(rows))
+			for i, r := range rows {
+				got[i] = r[ColPID]
+			}
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestBuildTreeRows_SiblingsSorted(t *testing.T) {
 	// CPU and memory rankings are deliberately inverted, so sorting by the wrong
 	// field produces a visibly different order rather than an accidental match.
@@ -189,15 +228,16 @@ func TestSortTreeNodes_ByName_IsCaseInsensitive(t *testing.T) {
 }
 
 func TestSortColFor_MapsEverySortFieldToADistinctColumn(t *testing.T) {
-	// Mirrors ui.SortField: 0=CPU, 1=Mem, 2=PID, 3=Name. The two numberings are
-	// bridged only by this function, so drift here silently mislabels headers.
-	const sortFieldCount = 4
+	// Mirrors ui.SortField: 0=CPU, 1=Mem, 2=PID, 3=Name, 4=DiskR, 5=DiskW. The two
+	// numberings are bridged only by this function, so drift here silently
+	// mislabels headers.
+	const sortFieldCount = 6
 
 	seen := map[int]int{}
 	for f := 0; f < sortFieldCount; f++ {
 		col := SortColFor(f)
-		if col < 0 || col >= numCols {
-			t.Errorf("SortColFor(%d) = %d, outside valid column range [0,%d)", f, col, numCols)
+		if col < 0 || col >= MaxCols {
+			t.Errorf("SortColFor(%d) = %d, outside valid column range [0,%d)", f, col, MaxCols)
 		}
 		if prev, dup := seen[col]; dup {
 			t.Errorf("SortColFor(%d) and SortColFor(%d) both map to column %d", prev, f, col)
@@ -211,18 +251,100 @@ func TestSortColFor_MapsEverySortFieldToADistinctColumn(t *testing.T) {
 }
 
 func TestBuildColumns_ConsumesExactlyTerminalWidth(t *testing.T) {
-	for _, termW := range []int{80, 100, 120, 200, 400} {
+	for _, termW := range []int{80, 100, 119, 120, 121, 200, 400} {
 		cols := BuildColumns(termW, ColCPU, false)
-		if len(cols) != numCols {
-			t.Fatalf("got %d columns, want %d", len(cols), numCols)
+		// The column count is fixed; columns that do not fit are zero-width, which
+		// bubbles/table skips entirely.  A varying count would desync from the
+		// fixed-width rows and panic in renderRow.
+		if len(cols) != MaxCols {
+			t.Fatalf("got %d columns, want %d", len(cols), MaxCols)
 		}
-		total := 0
+		total, visible := 0, 0
 		for _, c := range cols {
+			if c.Width <= 0 {
+				continue
+			}
 			total += c.Width
+			visible++
 		}
-		// bubbles/table pads every cell with one space on each side.
-		if got := total + cellPadOverhead; got != termW {
+		// bubbles/table pads every rendered cell with one space on each side.
+		if got := total + visible*cellPad; got != termW {
 			t.Errorf("termW=%d: columns occupy %d, want %d", termW, got, termW)
+		}
+	}
+}
+
+// The two disk columns must appear and disappear together: one without the other
+// is asymmetric, and it would strand a sort field on an unrendered column.
+func TestBuildColumns_DiskColumnsAppearTogetherAtThreshold(t *testing.T) {
+	for _, tc := range []struct {
+		termW int
+		want  bool
+	}{
+		{80, false}, {119, false}, {DiskColsMinWidth, true}, {200, true},
+	} {
+		cols := BuildColumns(tc.termW, ColCPU, false)
+		gotR := cols[ColDiskR].Width > 0
+		gotW := cols[ColDiskW].Width > 0
+		if gotR != gotW {
+			t.Errorf("termW=%d: disk columns disagree (read=%v write=%v)", tc.termW, gotR, gotW)
+		}
+		if gotR != tc.want {
+			t.Errorf("termW=%d: disk columns visible=%v, want %v", tc.termW, gotR, tc.want)
+		}
+	}
+}
+
+// renderRow walks the row's cells and indexes m.cols by the same offset, so a row
+// carrying more cells than there are columns panics.  Rows are fixed-width for
+// exactly this reason; this test is the guard.
+func TestBuildRows_AlwaysEmitsMaxColsCells(t *testing.T) {
+	procs := []collector.ProcSnapshot{
+		{PID: 1, PPID: 0, Name: "root.exe", CPUPct: 1, MemMB: 10, ReadBps: 2048, WriteBps: 0},
+		{PID: 2, PPID: 1, Name: "child.exe", CPUPct: 3, MemMB: 20, ReadBps: 0, WriteBps: 1 << 20},
+		{PID: 3, PPID: 1, Name: "other.exe", CPUPct: 2, MemMB: 30},
+	}
+	check := func(what string, rows []table.Row) {
+		t.Helper()
+		if len(rows) == 0 {
+			t.Fatalf("%s: no rows", what)
+		}
+		for i, r := range rows {
+			if len(r) != MaxCols {
+				t.Errorf("%s row %d has %d cells, want %d", what, i, len(r), MaxCols)
+			}
+		}
+	}
+	check("BuildRows", BuildRows(procs))
+	check("BuildTreeRows", BuildTreeRows(procs, 0, false))
+
+	// And the invariant that matters at runtime: cells never outnumber columns.
+	for _, termW := range []int{20, 80, 119, 120, 200} {
+		if got, want := len(BuildColumns(termW, ColCPU, false)), len(BuildRows(procs)[0]); got != want {
+			t.Errorf("termW=%d: %d columns but %d cells per row", termW, got, want)
+		}
+	}
+}
+
+func TestFmtRateCell(t *testing.T) {
+	tests := []struct {
+		bps  float64
+		want string
+	}{
+		{0, "0"},
+		{-1, "0"},
+		{512, "512B"},
+		{1 << 10, "1.0K"},
+		{1536, "1.5K"},
+		{1 << 20, "1.0M"},
+		{1 << 30, "1.0G"},
+	}
+	for _, tt := range tests {
+		if got := fmtRateCell(tt.bps); got != tt.want {
+			t.Errorf("fmtRateCell(%v) = %q, want %q", tt.bps, got, tt.want)
+		}
+		if got := len(fmtRateCell(tt.bps)); got > diskW {
+			t.Errorf("fmtRateCell(%v) is %d chars, wider than the %d-cell column", tt.bps, got, diskW)
 		}
 	}
 }
@@ -261,13 +383,14 @@ func TestBuildColumns_SortArrowIsPlainText(t *testing.T) {
 
 func TestBuildRows_FormatsOneRowPerProcess(t *testing.T) {
 	procs := []collector.ProcSnapshot{
-		{PID: 42, Name: "test.exe", CPUPct: 12.34, MemPct: 5.67, MemMB: 89.1},
+		{PID: 42, Name: "test.exe", CPUPct: 12.34, MemPct: 5.67, MemMB: 89.1, ReadBps: 1536, WriteBps: 0},
 	}
 	rows := BuildRows(procs)
 	if len(rows) != 1 {
 		t.Fatalf("got %d rows, want 1", len(rows))
 	}
-	want := []string{"42", "test.exe", "12.3", "5.7", "89.1"}
+	// Rows always carry the disk cells, whether or not the current width shows them.
+	want := []string{"42", "test.exe", "12.3", "5.7", "89.1", "1.5K", "0"}
 	if !slices.Equal([]string(rows[0]), want) {
 		t.Errorf("got %v, want %v", []string(rows[0]), want)
 	}

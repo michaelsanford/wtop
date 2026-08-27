@@ -178,17 +178,47 @@ func BenchmarkMem(b *testing.B) {
 }
 
 func BenchmarkGPU(b *testing.B) {
-	// The nvidia-smi source renders the most lines, so it bounds the cost.
+	forceColor(b)
 	snap := collector.GPUSnapshot{
 		Name: "NVIDIA GeForce RTX 4080", UtilPct: 72, MemUtilPct: 45,
 		MemUsedMiB: 8192, MemTotMiB: 16384, TempC: 61, PowerDrawW: 210,
-		PowerLimitW: 320, GfxClockMHz: 2505, MemClockMHz: 10501, FanPct: 40,
-		PState: "P0", Source: collector.GPUSourceNvidiaSmi,
+		PowerLimitW: 320, GfxClockMHz: 2505, MemClockMHz: 10501,
+		FanPct: 40, FanKnown: true, PState: "P0", Source: collector.GPUSourceNvidiaSmi,
 	}
+	// Swept across widths: the panel branches on inner width, and a single width
+	// would miss the compaction path entirely.
+	for _, w := range benchWidths {
+		b.Run(fmt.Sprintf("w=%d", w), func(b *testing.B) {
+			for b.Loop() {
+				sinkPanel = GPU(snap, 0, 1, w, 9)
+			}
+		})
+	}
+}
+
+func BenchmarkDisk(b *testing.B) {
 	forceColor(b)
-	b.ReportAllocs()
-	for range b.N {
-		sinkPanel = GPU(snap, 0, 2, 40, 0)
+	disks := []collector.DiskSnapshot{
+		{Index: 0, Volumes: []string{"C:"}, ReadBytesPerSec: 12 << 20, WriteBytesPerSec: 3 << 20, BusyPct: 41},
+		{Index: 1, Volumes: []string{"D:"}, BusyPct: 3},
+		{Index: 2, Volumes: []string{"E:"}},
+		{Index: 3},
+	}
+	vols := []collector.VolumeSnapshot{
+		{Mount: "C:", UsedBytes: 340 << 30, TotalBytes: 476 << 30, UsedPct: 72},
+		{Mount: "D:", UsedBytes: 1 << 40, TotalBytes: 9 << 40, UsedPct: 18},
+		{Mount: "E:", UsedBytes: 88 << 30, TotalBytes: 932 << 30, UsedPct: 9},
+		{Mount: "F:", UsedBytes: 900 << 30, TotalBytes: 928 << 30, UsedPct: 97},
+		{Mount: "G:", UsedBytes: 1 << 30, TotalBytes: 2 << 30, UsedPct: 50},
+	}
+	for _, n := range []int{1, 4} {
+		for _, w := range []int{40, 80} {
+			b.Run(fmt.Sprintf("disks=%d/w=%d", n, w), func(b *testing.B) {
+				for b.Loop() {
+					sinkPanel = Disk(disks[:n], vols[:n], w, 9)
+				}
+			})
+		}
 	}
 }
 

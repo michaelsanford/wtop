@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -66,6 +67,7 @@ func benchProcs(n int) []collector.ProcSnapshot {
 		procs = append(procs, collector.ProcSnapshot{
 			PID: int32(1000 + i), PPID: ppid, Name: name,
 			CPUPct: float64(i % 100), MemPct: float32(i % 100),
+			ReadBps: float64(i%97) * 1024, WriteBps: float64(i%53) * 4096,
 			MemMB: float64(i % 2048), Self: i == 0 || i == 1,
 		})
 	}
@@ -108,7 +110,20 @@ func benchSnapshot() collector.Snapshot {
 			PowerLimitW: 320, GfxClockMHz: 2505, MemClockMHz: 10501,
 			PState: "P0", Source: collector.GPUSourceNvidiaSmi,
 		}},
-		Net:   net,
+		Net: net,
+		Disks: []collector.DiskSnapshot{
+			{Index: 0, Volumes: []string{"C:"}, ReadBytesPerSec: 12 << 20, WriteBytesPerSec: 3 << 20, BusyPct: 41},
+			{Index: 1, Volumes: []string{"D:"}, BusyPct: 3},
+		},
+		Volumes: []collector.VolumeSnapshot{
+			{Mount: "C:", UsedBytes: 340 << 30, TotalBytes: 476 << 30, UsedPct: 72},
+			{Mount: "D:", UsedBytes: 1 << 40, TotalBytes: 9 << 40, UsedPct: 18},
+		},
+		Host: collector.HostSnapshot{Uptime: 80 * time.Hour},
+		Power: collector.PowerSnapshot{
+			AC: collector.ACOffline, Present: true, State: collector.BatteryDischarging,
+			Pct: 84, PctValid: true, Remaining: 2 * time.Hour, RemainingValid: true,
+		},
 		Procs: benchProcs(benchProcCount),
 	}
 }
@@ -132,7 +147,7 @@ func benchModel(w, h int, tree bool) Model {
 // 3-column one that also renders the Net panel.
 func BenchmarkModelView(b *testing.B) {
 	for _, tree := range []bool{false, true} {
-		for _, dim := range []struct{ w, h int }{{80, 24}, {160, 50}} {
+		for _, dim := range []struct{ w, h int }{{80, 24}, {160, 50}, {200, 60}} {
 			name := fmt.Sprintf("flat/%dx%d", dim.w, dim.h)
 			if tree {
 				name = fmt.Sprintf("tree/%dx%d", dim.w, dim.h)

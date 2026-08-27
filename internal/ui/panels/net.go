@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/michaelsanford/wtop/internal/collector"
 )
 
@@ -43,9 +44,15 @@ func fmtBytesPerSec(bps float64) string {
 	}
 }
 
+// truncate clips s to max visible cells.  It measures display width rather than
+// bytes so multi-byte runes are never split and ANSI escapes are not counted
+// against the budget.
 func truncate(s string, max int) string {
-	if len(s) <= max {
+	if max < 1 {
+		return ""
+	}
+	if ansi.StringWidth(s) <= max {
 		return s
 	}
-	return s[:max-1] + "…"
+	return ansi.Truncate(s, max, "…")
 }

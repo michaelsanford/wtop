@@ -50,9 +50,15 @@ func GPU(snap collector.GPUSnapshot, idx, total int, width, height int) string {
 		if snap.TempC > 0 {
 			tempStr = fmt.Sprintf("%.0f°C", snap.TempC)
 		}
-		fanStr := "passive"
-		if snap.FanPct > 0 {
+		// Three states, not two: a driver that will not report is not the same as a
+		// fan that is stopped, and claiming "passive" for the former is a confident
+		// wrong answer.  Laptop dGPUs are overwhelmingly the first case.
+		fanStr := "n/a"
+		switch {
+		case snap.FanKnown && snap.FanPct > 0:
 			fanStr = fmt.Sprintf("%.0f%%", snap.FanPct)
+		case snap.FanKnown:
+			fanStr = "passive"
 		}
 		lines = append(lines, fmt.Sprintf("  Temp %-8s  Fan %s", tempStr, fanStr))
 
