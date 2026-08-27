@@ -29,9 +29,13 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 
 - **CPU** — per-core utilisation bars with colour coding (green → yellow → red)
 - **Memory** — RAM and swap bars in GiB via direct Win32 memory status
+- **CPU clock** — the real effective clock including turbo, from the `% Processor Performance` counter against the nominal base clock (a boosting CPU reads well above 100%, so the figure is not clamped)
+- **Battery and power** — AC/battery, charge, time remaining and battery-saver state in the status bar, alongside system uptime. Omitted entirely on desktops with no battery, so nothing is wasted on a machine that has none
 - **GPU** — in-process NVML for NVIDIA GPUs (sub-millisecond, zero subprocess overhead) with DXGI, PDH, and `nvidia-smi` fallbacks; AMD/Intel via PDH
-- **Network** — shows per-interface send/receive rates in real time via direct `GetIfTable2`; loopback and zero-traffic interfaces are hidden automatically (automatically displays when the terminal is 110+ columns wide)
-- **Process list** — high-performance native Windows NT single-syscall collection; flat or htop-style tree view (`t`) with full process hierarchies; sortable by CPU%, memory, PID, or name; kill selected process
+- **Network** — per-interface send/receive rates in real time via direct `GetIfTable2`; loopback and zero-traffic interfaces are hidden automatically
+- **Disk** — per-physical-disk read/write throughput and busy percentage from PDH, plus capacity bars for each fixed volume. Virtual filesystems that masquerade as fixed drives (Google Drive and the like) are filtered out by reconciling against the real physical disks, so you do not get a phantom copy of `C:`
+- **Process list** — high-performance native Windows NT single-syscall collection; flat or htop-style tree view (`t`) with full process hierarchies; sortable by CPU%, memory, PID, name, or disk read/write; kill selected process
+- **Per-process disk I/O** — `DISK R` / `DISK W` columns showing per-process read and write rates (shown when the terminal is 120+ columns wide). The counters come out of the same single system call that already collects the process list, so they cost no extra syscalls
 - **Self-ancestry marker** — a `◆` marks `wtop` itself and the terminal session hosting it (the shells and terminal host above it), so you can see the monitor's own cost and avoid killing your session by mistake. Those processes stay in the list even when idle. The walk stops below the session root — `explorer.exe` parents nearly everything interactive, so marking it would say nothing
 
 ## Keyboard shortcuts
@@ -40,11 +44,27 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 |----------------|-----------------------------------------------|
 | `q` / `Ctrl+C` | Quit                                          |
 | `↑` / `↓`      | Scroll process list                           |
-| `s`            | Cycle sort column (CPU% → MEM% → PID → Name)  |
+| `s`            | Cycle sort column (CPU% → MEM MB → PID → Name → DISK R → DISK W) |
 | `d`            | Invert sort order                             |
 | `t`            | Toggle tree view (htop-style parent → child)  |
 | `x`            | Kill selected process (confirmation required) |
 | `g`            | Cycle GPUs (if multiple)                      |
+| `i`            | Cycle the I/O panel (GPU → Network → Disk)    |
+
+## Layout
+
+The panel row is Memory plus as many rotating panels as the terminal can hold. GPU, Network and
+Disk share those slots and page through them with `i`:
+
+| Terminal width | Panel row                      |
+|----------------|--------------------------------|
+| below 110      | Memory + one rotating panel    |
+| 110 – 159      | Memory + two rotating panels   |
+| 160 and wider  | Memory + all three; `i` is a no-op |
+
+The process table has its own threshold: the `DISK R` and `DISK W` columns appear at 120 columns
+and disappear together below it. Sorting by a hidden column still works — the status bar is the
+authoritative sort indicator.
 
 ## Install
 
