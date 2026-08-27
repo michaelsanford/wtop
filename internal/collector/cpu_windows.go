@@ -113,8 +113,10 @@ func (ct *cpuTracker) collect() (CPUSnapshot, error) {
 		aggrPct = totalBusyPct / float64(numCores)
 	}
 
-	return CPUSnapshot{
+	snap := CPUSnapshot{
 		CorePcts: corePcts,
 		AggrPct:  aggrPct,
-	}, nil
+	}
+	augmentCPUClock(&snap)
+	return snap, nil
 }

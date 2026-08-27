@@ -222,9 +222,15 @@ func queryAllNvidia() []GPUSnapshot {
 			_, _, _ = procNvmlDeviceGetClockInfo.Call(dev, 2, uintptr(unsafe.Pointer(&memClock)))
 		}
 
+		// A laptop dGPU is usually driver-controlled and NVML returns
+		// NVML_ERROR_NOT_SUPPORTED, which is a different thing from a fan that is
+		// stopped — only a non-zero return here means the value is real.
 		var fanSpeed uint32
+		fanKnown := false
 		if procNvmlDeviceGetFanSpeed.Find() == nil {
-			_, _, _ = procNvmlDeviceGetFanSpeed.Call(dev, uintptr(unsafe.Pointer(&fanSpeed)))
+			if r, _, _ := procNvmlDeviceGetFanSpeed.Call(dev, uintptr(unsafe.Pointer(&fanSpeed))); r == 0 {
+				fanKnown = true
+			}
 		}
 
 		var pState uint32
@@ -247,6 +253,7 @@ func queryAllNvidia() []GPUSnapshot {
 			GfxClockMHz: uint64(gfxClock),
 			MemClockMHz: uint64(memClock),
 			FanPct:      float64(fanSpeed),
+			FanKnown:    fanKnown,
 			PState:      pStateStr,
 			Source:      GPUSourceNvidiaSmi,
 		})
@@ -301,6 +308,7 @@ func parseNvidiaRow(line string) (GPUSnapshot, bool) {
 		GfxClockMHz: parseUint(f[8]),
 		MemClockMHz: parseUint(f[9]),
 		FanPct:      parseFloat(f[10]),
+		FanKnown:    !strings.Contains(strings.ToUpper(f[10]), "N/A"),
 		PState:      strings.TrimSpace(f[11]),
 		Source:      GPUSourceNvidiaSmi,
 	}

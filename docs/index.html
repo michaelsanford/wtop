@@ -13,7 +13,7 @@
         content="accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()">
 
   <!-- SEO / social -->
-  <meta name="description" content="A self-contained, single-binary system monitor for Windows, inspired by htop. Real-time CPU, memory, GPU, and process monitoring in the terminal.">
+  <meta name="description" content="A self-contained, single-binary system monitor for Windows, inspired by htop. Real-time CPU, memory, GPU, disk, network, and process monitoring in the terminal.">
   <meta name="author" content="Michael Sanford">
   <meta property="og:title" content="wtop — Windows System Monitor">
   <meta property="og:description" content="A self-contained, single-binary system monitor for Windows, inspired by htop.">
@@ -492,8 +492,23 @@
       <div class="feat">
         <div class="feat-icon fi-r">☰</div>
         <h3>Process list</h3>
-        <p>High-performance native single-syscall Windows NT query. Top processes sortable by CPU%, memory, PID, or name. Toggle an htop-style tree view (<kbd>t</kbd>) to see full parent&thinsp;→&thinsp;child relationships with box-drawing connectors across the entire system. Kill any selected process with a confirmation step.</p>
+        <p>High-performance native single-syscall Windows NT query. Top processes sortable by CPU%, memory, PID, name, or disk read/write. Toggle an htop-style tree view (<kbd>t</kbd>) to see full parent&thinsp;→&thinsp;child relationships with box-drawing connectors across the entire system. Kill any selected process with a confirmation step.</p>
         <p>A <code>◆</code> marks <code>wtop</code> itself and the terminal session hosting it &mdash; the shells and terminal host above it &mdash; so the monitor's own cost is visible and your session is hard to kill by accident. Those processes stay pinned in the list even when idle. The chain stops below the session root: <code>explorer.exe</code> parents nearly everything interactive, so marking it would say nothing.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon fi-r">⇅</div>
+        <h3>Per-process disk I/O</h3>
+        <p><code>DISK R</code> and <code>DISK W</code> columns show what each process is actually reading and writing, and the list sorts by either. The transfer counters arrive in the same single system call that already collects the process list, so the columns cost no additional syscalls. They appear once the terminal is 120 columns wide.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon fi-b">◑</div>
+        <h3>Battery, uptime &amp; clock</h3>
+        <p>The status bar carries AC or battery state, charge, estimated time remaining and battery-saver mode, plus system uptime and the true effective CPU clock including turbo. On a desktop with no battery the power field is omitted rather than left blank. The fields thin out in priority order as the terminal narrows &mdash; the charge state is the last of them to go.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon fi-b">▤</div>
+        <h3>Disk</h3>
+        <p>Per-physical-disk read and write throughput with a busy percentage, straight from PDH, plus a capacity bar for every fixed volume. Virtual filesystems that present themselves as fixed drives &mdash; Google Drive mirrors the system drive&rsquo;s exact size &mdash; are reconciled away against the real physical disks, so no phantom copy of <code>C:</code> appears.</p>
       </div>
       <div class="feat">
         <div class="feat-icon fi-gg">◉</div>
@@ -524,7 +539,7 @@
         </tr>
         <tr>
           <td class="td-keys"><kbd>s</kbd></td>
-          <td>Cycle sort column &mdash; CPU%&thinsp;→&thinsp;Mem MB&thinsp;→&thinsp;PID&thinsp;→&thinsp;Name</td>
+          <td>Cycle sort column &mdash; CPU%&thinsp;→&thinsp;Mem MB&thinsp;→&thinsp;PID&thinsp;→&thinsp;Name&thinsp;→&thinsp;Disk R&thinsp;→&thinsp;Disk W</td>
         </tr>
         <tr>
           <td class="td-keys"><kbd>d</kbd></td>
@@ -537,6 +552,10 @@
         <tr>
           <td class="td-keys"><kbd>g</kbd></td>
           <td>Cycle between GPUs (when multiple are detected)</td>
+        </tr>
+        <tr>
+          <td><kbd>i</kbd></td>
+          <td>Cycle the I/O panel &mdash; GPU&thinsp;→&thinsp;Network&thinsp;→&thinsp;Disk</td>
         </tr>
         <tr>
           <td class="td-keys"><kbd>x</kbd></td>

@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/michaelsanford/wtop/internal/collector"
 	"github.com/michaelsanford/wtop/internal/ui/panels"
 	"github.com/michaelsanford/wtop/internal/version"
@@ -44,15 +45,16 @@ func stripANSI(s string) string {
 const (
 	metricsPanelInnerH = 9 // inner content lines for the Mem / GPU row (NVIDIA fills all 9)
 	statusBarH         = 1
-	tableHeaderH       = 2 // header row + bottom border line
 )
 
 // sortDefaultAsc controls the initial sort direction when cycling to each field.
 var sortDefaultAsc = [sortFieldCount]bool{
-	SortByCPU:  false, // highest CPU first
-	SortByMem:  false, // highest mem first
-	SortByPID:  true,  // lowest PID first
-	SortByName: true,  // A-Z
+	SortByCPU:   false, // highest CPU first
+	SortByMem:   false, // highest mem first
+	SortByPID:   true,  // lowest PID first
+	SortByName:  true,  // A-Z
+	SortByDiskR: false, // busiest reader first
+	SortByDiskW: false, // busiest writer first
 }
 
 // SortField controls the process list sort order.
@@ -63,10 +65,12 @@ const (
 	SortByMem
 	SortByPID
 	SortByName
+	SortByDiskR
+	SortByDiskW
 	sortFieldCount
 )
 
-var sortLabels = [...]string{"CPU%", "MEM MB", "PID", "Name"}
+var sortLabels = [...]string{"CPU%", "MEM MB", "PID", "Name", "DISK R", "DISK W"}
 
 // Messages exchanged within the Bubble Tea update loop.
 type tickMsg time.Time
@@ -85,6 +89,7 @@ type Model struct {
 	snap     collector.Snapshot
 	lastErr  error
 	sortBy   SortField
+	rotIdx   rotationSlot
 	sortAsc  bool
 	gpuIdx   int
 	treeView bool
@@ -243,6 +248,14 @@ func (m Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.gpuIdx = (m.gpuIdx + 1) % n
 		}
 
+	case key.Matches(msg, m.keys.CycleIO):
+		// A no-op when every slot is already on screen, exactly as [g] is a no-op
+		// with a single GPU.  The rotation set is a compile-time constant, so the
+		// index can never point at something that has gone away.
+		if rotatingSlots(m.width) < int(rotationCount) {
+			m.rotIdx = (m.rotIdx + 1) % rotationCount
+		}
+
 	case key.Matches(msg, m.keys.Kill):
 		rows := m.tbl.Rows()
 		cur := m.tbl.Cursor()
@@ -277,28 +290,8 @@ func (m Model) View() string {
 	// Row 1: CPU full width — height adapts to core count automatically
 	cpuRow := panels.CPU(m.snap.CPU, m.width)
 
-	// Row 2: Memory + GPU + Network layout
-	// Dynamic transition between 2-column and 3-column based on terminal width.
-	var metricsRow string
-	if m.width < 110 {
-		memW := m.width / 2
-		gpuW := m.width - memW
-		gpuSnap, gpuIdx, gpuTotal := currentGPU(m.snap.GPUs, m.gpuIdx)
-		metricsRow = lipgloss.JoinHorizontal(lipgloss.Top,
-			panels.Mem(m.snap.Mem, memW, metricsPanelInnerH),
-			panels.GPU(gpuSnap, gpuIdx, gpuTotal, gpuW, metricsPanelInnerH),
-		)
-	} else {
-		memW := m.width / 3
-		gpuW := m.width / 3
-		netW := m.width - memW - gpuW
-		gpuSnap, gpuIdx, gpuTotal := currentGPU(m.snap.GPUs, m.gpuIdx)
-		metricsRow = lipgloss.JoinHorizontal(lipgloss.Top,
-			panels.Mem(m.snap.Mem, memW, metricsPanelInnerH),
-			panels.GPU(gpuSnap, gpuIdx, gpuTotal, gpuW, metricsPanelInnerH),
-			panels.Net(m.snap.Net, netW, metricsPanelInnerH),
-		)
-	}
+	// Row 2: Memory, then the rotating slots.
+	metricsRow := m.metricsRow()
 
 	// Row 3: Process table — re-render the selected row at full terminal width so
 	// the highlight background isn't broken by per-cell ANSI resets.
@@ -315,11 +308,54 @@ func (m Model) View() string {
 	return full
 }
 
+// metricsRow lays out the Memory panel plus the visible rotating slots.
+func (m Model) metricsRow() string {
+	k := rotatingSlots(m.width)
+	boxes := k + 1 // Mem is always present
+
+	// Integer division leaves a remainder; the last box absorbs it, matching the
+	// existing "netW := width - memW - gpuW" idiom.
+	each := m.width / boxes
+	rendered := make([]string, 0, boxes)
+	rendered = append(rendered, panels.Mem(m.snap.Mem, each, metricsPanelInnerH))
+	used := each
+
+	for i := 0; i < k; i++ {
+		w := each
+		if i == k-1 {
+			w = m.width - used
+		}
+		used += each
+
+		slot := rotationSlot((int(m.rotIdx) + i) % int(rotationCount))
+		rendered = append(rendered, m.renderSlot(slot, w))
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, rendered...)
+}
+
+func (m Model) renderSlot(slot rotationSlot, width int) string {
+	switch slot {
+	case slotNet:
+		return panels.Net(m.snap.Net, width, metricsPanelInnerH)
+	case slotDisk:
+		return panels.Disk(m.snap.Disks, m.snap.Volumes, width, metricsPanelInnerH)
+	default:
+		gpuSnap, gpuIdx, gpuTotal := currentGPU(m.snap.GPUs, m.gpuIdx)
+		return panels.GPU(gpuSnap, gpuIdx, gpuTotal, width, metricsPanelInnerH)
+	}
+}
+
 func (m Model) statusBar() string {
 	sortLabel := fmt.Sprintf("sort:%s", sortLabels[m.sortBy])
 	gpuHint := ""
 	if len(m.snap.GPUs) > 1 {
 		gpuHint = "  [g] gpu"
+	}
+	ioHint := ""
+	if rotatingSlots(m.width) < int(rotationCount) && m.width >= 100 {
+		// Gated at 100 rather than the 90 the wide hint tier uses: the left cluster
+		// is already ~78 cells there, and another hint would push it into the gap.
+		ioHint = "  [i] io"
 	}
 	treeHint := "  [t] tree"
 	if m.treeView {
@@ -328,9 +364,9 @@ func (m Model) statusBar() string {
 
 	var hint string
 	if m.width >= 90 {
-		hint = fmt.Sprintf("[q] quit  [↑↓/jk] scroll  [s] %s  [d] invert  [x] kill%s%s", sortLabel, gpuHint, treeHint)
+		hint = fmt.Sprintf("[q] quit  [↑↓/jk] scroll  [s] %s  [d] invert  [x] kill%s%s%s", sortLabel, gpuHint, ioHint, treeHint)
 	} else if m.width >= 70 {
-		hint = fmt.Sprintf("[q] quit  [s] %s  [d] inv  [x] kill%s%s", sortLabel, gpuHint, treeHint)
+		hint = fmt.Sprintf("[q] quit  [s] %s  [d] inv  [x] kill%s%s%s", sortLabel, gpuHint, ioHint, treeHint)
 	} else {
 		hint = fmt.Sprintf("[q] quit  [s] %s  [x] kill", sortLabels[m.sortBy])
 	}
@@ -342,32 +378,206 @@ func (m Model) statusBar() string {
 
 	left := hint + errStr
 
-	var right string
-	// Only show hostname and version on wider screens
-	if m.width >= 80 {
-		right = fmt.Sprintf("%s  wtop %s", m.hostname, version.Version)
-	} else if m.width >= 50 {
-		right = "wtop " + version.Version
+	// styleStatusBar pads one cell on each side, so the text budget is two cells
+	// narrower than the terminal.  Clipping to m.width instead overflows that
+	// budget and wraps the bar onto a second line, pushing the view past the
+	// terminal height.
+	inner := m.width - 2
+	if inner < 0 {
+		inner = 0
 	}
 
 	leftLen := lipgloss.Width(left)
+	// -1 leaves room for the single-space minimum gap between the clusters.
+	right := m.statusRight(inner - leftLen - 1)
 	rightLen := lipgloss.Width(right)
 
-	gap := m.width - leftLen - rightLen - 2
+	gap := inner - leftLen - rightLen
 	if gap < 1 {
 		gap = 1
 	}
 
 	bar := left + fmt.Sprintf("%*s", gap, "") + right
-	runes := []rune(bar)
-	if len(runes) > m.width {
-		bar = string(runes[:m.width])
+	if ansi.StringWidth(bar) > inner {
+		bar = ansi.Truncate(bar, inner, "")
 	}
 	return styleStatusBar.Width(m.width).Render(bar)
 }
 
+// statusRight builds the status bar's right-hand cluster to fit in budget cells.
+//
+// Rather than pinning each field to a hard width breakpoint, the cluster is
+// assembled from everything eligible and then thinned until it fits: terminal
+// width is only half the equation, since the left cluster and the hostname both
+// vary in length. Fixed breakpoints alone would leave a 15-character hostname
+// colliding with the hints on the very machines where the bar matters most.
+//
+// dropOrder encodes what is given up first. The clock is the least actionable
+// number; uptime is next. Then the hostname, which is static and usually already
+// known to whoever is looking at the screen. Battery outlives all of them: on a
+// laptop the charge state is the one thing worth knowing at any width, and it is
+// the only field here that can be urgent. The version is never dropped.
+func (m Model) statusRight(budget int) string {
+	if budget <= 0 || m.width < 50 {
+		return ""
+	}
+
+	const (
+		iUptime = iota
+		iClock
+		iPower
+		iHost
+		iVersion
+		nParts
+	)
+	long := m.width >= 130
+
+	parts := [nParts]string{
+		iUptime:  fmtUptime(m.snap.Host.Uptime, long),
+		iClock:   fmtClock(m.snap.CPU.EffectiveMHz),
+		iPower:   fmtPower(m.snap.Power, long),
+		iVersion: "wtop " + version.Version,
+	}
+	if m.width >= 80 {
+		parts[iHost] = m.hostname
+	}
+
+	dropOrder := [...]int{iClock, iUptime, iHost, iPower}
+	for i := 0; ; i++ {
+		if joined := joinStatus(parts[:]...); lipgloss.Width(joined) <= budget {
+			return joined
+		}
+		if i >= len(dropOrder) {
+			// Only the version is left and it still does not fit; the caller clips.
+			return joinStatus(parts[:]...)
+		}
+		parts[dropOrder[i]] = ""
+	}
+}
+
+// joinStatus joins the non-empty parts of the status bar's right cluster.  Parts
+// go missing routinely — no battery, no clock counter, uptime not yet read — and
+// skipping them here keeps every caller from having to check.
+func joinStatus(parts ...string) string {
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return strings.Join(out, "  ")
+}
+
+// fmtUptime renders uptime as "up 3d 04:12" (long) or "up 3d04h" (short).
+func fmtUptime(d time.Duration, long bool) string {
+	if d <= 0 {
+		return ""
+	}
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	mins := int(d.Minutes()) % 60
+	if long {
+		if days > 0 {
+			return fmt.Sprintf("up %dd %02d:%02d", days, hours, mins)
+		}
+		return fmt.Sprintf("up %02d:%02d", hours, mins)
+	}
+	if days > 0 {
+		return fmt.Sprintf("up %dd%02dh", days, hours)
+	}
+	return fmt.Sprintf("up %dh%02dm", hours, mins)
+}
+
+func fmtClock(mhz float64) string {
+	if mhz <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.2fGHz", mhz/1000)
+}
+
+// fmtPower renders the AC/battery state, or "" when no battery is installed —
+// a desktop should not carry a permanently empty slot in its status bar.
+//
+// Urgency is spelled out in words rather than colour on purpose: the bar is
+// clipped to width as a plain string, and an escape sequence cut in half would
+// corrupt the terminal.  Same reason the column headers stay plain text.
+func fmtPower(p collector.PowerSnapshot, long bool) string {
+	if !p.Present {
+		return ""
+	}
+
+	label := "BAT"
+	if p.AC == collector.ACOnline {
+		label = "AC"
+	}
+
+	out := label
+	if p.PctValid {
+		out = fmt.Sprintf("%s %.0f%%", label, p.Pct)
+	}
+
+	switch p.State {
+	case collector.BatteryCharging:
+		out += "▲"
+	case collector.BatteryDischarging:
+		out += "▼"
+	}
+
+	if long && p.RemainingValid && p.State == collector.BatteryDischarging {
+		h := int(p.Remaining.Hours())
+		m := int(p.Remaining.Minutes()) % 60
+		out += fmt.Sprintf(" %d:%02d", h, m)
+	}
+	if p.PctValid && p.Pct < 10 && p.State != collector.BatteryCharging {
+		out += " LOW"
+	}
+	if p.Saver {
+		out += " SAVER"
+	}
+	return out
+}
+
+// The metrics row is a fixed Memory column plus as many rotating slots as the
+// terminal can hold.  Slots page through rotationSet with [i].
+//
+// At the default offset the rendering is identical to what earlier versions
+// showed at every width — Mem+GPU below 110, Mem+GPU+Net at 110 — with Disk
+// added as a fourth box once there is room.  Nothing moves for existing users;
+// [i] simply reaches panels that were previously unreachable at that width.
+type rotationSlot int
+
+const (
+	slotGPU rotationSlot = iota
+	slotNet
+	slotDisk
+	rotationCount
+)
+
+// Widths at which a further rotating slot fits.  160/4 = 40 outer = 36 inner is
+// the point at which the GPU clocks line and the Net interface lines stop being
+// truncated, so the threshold is derived rather than picked.
+const (
+	threeSlotMinWidth = 110
+	fourSlotMinWidth  = 160
+)
+
+// rotatingSlots is how many of the rotation set are on screen at this width.
+func rotatingSlots(width int) int {
+	switch {
+	case width >= fourSlotMinWidth:
+		return 3
+	case width >= threeSlotMinWidth:
+		return 2
+	default:
+		return 1
+	}
+}
+
 func computeTableHeight(termH, cpuOuterH int) int {
-	reserved := cpuOuterH + (metricsPanelInnerH + 2) + statusBarH + tableHeaderH
+	// bubbles/table SetHeight(h) renders exactly h lines: it subtracts the header
+	// internally (viewport.Height = h - headerHeight), so the header must NOT be
+	// reserved again here or the view comes up short and wastes process rows.
+	reserved := cpuOuterH + (metricsPanelInnerH + 2) + statusBarH
 	h := termH - reserved
 	if h < 3 {
 		h = 3
@@ -406,7 +616,13 @@ func (m Model) extendSelectedRow(view string) string {
 		return view
 	}
 
+	// Clip before styling: below ~50 columns bubbles/table's own columns are wider
+	// than the terminal, and handing an over-long line to a Width() style wraps it
+	// onto a second row, making the view taller than the terminal.
 	plain := stripANSI(lines[lineIdx])
+	if ansi.StringWidth(plain) > m.width {
+		plain = ansi.Truncate(plain, m.width, "")
+	}
 	lines[lineIdx] = lipgloss.NewStyle().
 		Background(lipgloss.Color("57")).
 		Foreground(lipgloss.Color("229")).
@@ -456,6 +672,20 @@ func buildSortedRows(procs []collector.ProcSnapshot, sortBy SortField, ascending
 				return sorted[i].Name < sorted[j].Name
 			}
 			return sorted[i].Name > sorted[j].Name
+		})
+	case SortByDiskR:
+		sort.Slice(sorted, func(i, j int) bool {
+			if ascending {
+				return sorted[i].ReadBps < sorted[j].ReadBps
+			}
+			return sorted[i].ReadBps > sorted[j].ReadBps
+		})
+	case SortByDiskW:
+		sort.Slice(sorted, func(i, j int) bool {
+			if ascending {
+				return sorted[i].WriteBps < sorted[j].WriteBps
+			}
+			return sorted[i].WriteBps > sorted[j].WriteBps
 		})
 	default:
 		// No default sort, leave sorted as-is

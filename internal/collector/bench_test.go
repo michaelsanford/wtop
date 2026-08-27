@@ -23,12 +23,16 @@ import (
 // Every benchmark writes to a package-level sink; without that the compiler is
 // free to delete the call it is supposed to be measuring.
 var (
-	sinkChain map[int32]struct{}
-	sinkRate  float64
-	sinkProcs []ProcSnapshot
-	sinkCPU   CPUSnapshot
-	sinkNet   []NetSnapshot
-	sinkSnap  Snapshot
+	sinkChain   map[int32]struct{}
+	sinkRate    float64
+	sinkProcs   []ProcSnapshot
+	sinkCPU     CPUSnapshot
+	sinkNet     []NetSnapshot
+	sinkPower   PowerSnapshot
+	sinkHost    HostSnapshot
+	sinkDisks   []DiskSnapshot
+	sinkVolumes []VolumeSnapshot
+	sinkSnap    Snapshot
 )
 
 // benchChainStart is the PID benchPPIDMaps hands to selfChainPIDs.  It sits at the
@@ -83,6 +87,53 @@ func BenchmarkSelfChainPIDs(b *testing.B) {
 
 // BenchmarkNetRate guards a property rather than a cost: netRate is pure
 // arithmetic and should stay at zero allocations.
+func BenchmarkDecodeSystemPowerStatus(b *testing.B) {
+	raw := systemPowerStatus{ACLineStatus: 0, BatteryFlag: 1, BatteryLifePercent: 84, BatteryLifeTime: 8100}
+	for b.Loop() {
+		sinkPower = decodeSystemPowerStatus(raw)
+	}
+}
+
+func BenchmarkEffectiveMHz(b *testing.B) {
+	for b.Loop() {
+		sinkRate = effectiveMHz(2700, 191.57)
+	}
+}
+
+func BenchmarkLive_CollectPower(b *testing.B) {
+	for b.Loop() {
+		sinkPower = collectPower()
+	}
+}
+
+func BenchmarkLive_CollectDisks(b *testing.B) {
+	collectDisks() // prime the rate counters
+	for b.Loop() {
+		sinkDisks = collectDisks()
+	}
+}
+
+func BenchmarkLive_CollectVolumes(b *testing.B) {
+	for b.Loop() {
+		sinkVolumes = collectVolumes()
+	}
+}
+
+func BenchmarkLive_CollectHost(b *testing.B) {
+	for b.Loop() {
+		sinkHost = collectHost()
+	}
+}
+
+func BenchmarkIORate(b *testing.B) {
+	cur, prev := int64(0), int64(0)
+	for b.Loop() {
+		cur += 4096
+		sinkRate = ioRate(cur, prev, 1.0)
+		prev = cur
+	}
+}
+
 func BenchmarkNetRate(b *testing.B) {
 	b.ReportAllocs()
 	for i := range b.N {
