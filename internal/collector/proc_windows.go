@@ -72,21 +72,27 @@ type systemProcessInformationStruct struct {
 	OtherTransferCount           int64
 }
 
-type procCPUEntry struct {
-	totalTime int64
+// procSample is the previous tick's cumulative counters for one PID.  createTime
+// is carried so a recycled PID is recognised: without it the new process inherits
+// the dead one's totals and reports a garbage spike on its first tick.
+type procSample struct {
+	totalTime  int64
+	createTime int64
+	readBytes  int64
+	writeBytes int64
 }
 
 type procTracker struct {
-	mu           sync.Mutex
-	prevProcCPUs map[int32]procCPUEntry
-	prevSysTime  int64
-	prevTime     time.Time
-	buf          []byte
+	mu          sync.Mutex
+	prevProcs   map[int32]procSample
+	prevSysTime int64
+	prevTime    time.Time
+	buf         []byte
 }
 
 var globalProcTracker = &procTracker{
-	prevProcCPUs: make(map[int32]procCPUEntry, 512),
-	buf:          make([]byte, 256*1024),
+	prevProcs: make(map[int32]procSample, 512),
+	buf:       make([]byte, 256*1024),
 }
 
 // collectProcsNative queries all system processes in a single NtQuerySystemInformation syscall.
@@ -150,7 +156,15 @@ func (pt *procTracker) collect() ([]ProcSnapshot, error) {
 		deltaSysTime = int64(elapsed * float64(runtime.NumCPU()) * 10_000_000)
 	}
 
-	newProcCPUs := make(map[int32]procCPUEntry, len(pt.prevProcCPUs)+64)
+	// I/O is a wall-clock rate, unlike CPU% which is a share of busy CPU time.
+	// On the first tick there is no baseline; leave the rates at zero rather than
+	// inventing a denominator, which would produce a plausible-looking lie.
+	ioElapsed := 0.0
+	if !pt.prevTime.IsZero() {
+		ioElapsed = now.Sub(pt.prevTime).Seconds()
+	}
+
+	newProcs := make(map[int32]procSample, len(pt.prevProcs)+64)
 	rawProcs := make([]ProcSnapshot, 0, 512)
 
 	offset := uint32(0)
@@ -162,7 +176,13 @@ func (pt *procTracker) collect() ([]ProcSnapshot, error) {
 		ppid := int32(procInfo.InheritedFromUniqueProcessId & 0x7FFFFFFF)
 		curTotalProcTime := procInfo.UserTime + procInfo.KernelTime
 
-		newProcCPUs[pid] = procCPUEntry{totalTime: curTotalProcTime}
+		cur := procSample{
+			totalTime:  curTotalProcTime,
+			createTime: procInfo.CreateTime,
+			readBytes:  procInfo.ReadTransferCount,
+			writeBytes: procInfo.WriteTransferCount,
+		}
+		newProcs[pid] = cur
 
 		var name string
 		if procInfo.ImageName.Length > 0 && procInfo.ImageName.Buffer != nil {
@@ -173,12 +193,18 @@ func (pt *procTracker) collect() ([]ProcSnapshot, error) {
 			name = "System"
 		}
 
-		var cpuPct float64
-		if prev, ok := pt.prevProcCPUs[pid]; ok && deltaSysTime > 0 {
-			deltaProc := curTotalProcTime - prev.totalTime
-			if deltaProc > 0 {
-				cpuPct = (float64(deltaProc) / float64(deltaSysTime)) * 100.0
+		var cpuPct, readBps, writeBps float64
+		// Only compare against the previous tick when it described this same
+		// process; a recycled PID has a different create time.
+		if prev, ok := pt.prevProcs[pid]; ok && prev.createTime == cur.createTime {
+			if deltaSysTime > 0 {
+				deltaProc := curTotalProcTime - prev.totalTime
+				if deltaProc > 0 {
+					cpuPct = (float64(deltaProc) / float64(deltaSysTime)) * 100.0
+				}
 			}
+			readBps = ioRate(cur.readBytes, prev.readBytes, ioElapsed)
+			writeBps = ioRate(cur.writeBytes, prev.writeBytes, ioElapsed)
 		}
 
 		rss := uint64(procInfo.WorkingSetSize)
@@ -186,12 +212,14 @@ func (pt *procTracker) collect() ([]ProcSnapshot, error) {
 		memPct := float32((float64(rss) / float64(totalPhys)) * 100.0)
 
 		rawProcs = append(rawProcs, ProcSnapshot{
-			PID:    pid,
-			PPID:   ppid,
-			Name:   name,
-			CPUPct: cpuPct,
-			MemPct: memPct,
-			MemMB:  memMB,
+			PID:      pid,
+			PPID:     ppid,
+			Name:     name,
+			CPUPct:   cpuPct,
+			MemPct:   memPct,
+			MemMB:    memMB,
+			ReadBps:  readBps,
+			WriteBps: writeBps,
 		})
 
 		if procInfo.NextEntryOffset == 0 {
@@ -200,7 +228,7 @@ func (pt *procTracker) collect() ([]ProcSnapshot, error) {
 		offset += procInfo.NextEntryOffset
 	}
 
-	pt.prevProcCPUs = newProcCPUs
+	pt.prevProcs = newProcs
 	pt.prevSysTime = curSysTime
 	pt.prevTime = now
 

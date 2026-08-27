@@ -10,6 +10,20 @@ func collectCPU() (CPUSnapshot, error) {
 	return collectCPUNative()
 }
 
+// effectiveMHz converts the "% Processor Performance" counter into an actual
+// clock speed.
+//
+// The percentage is relative to the base clock and legitimately exceeds 100
+// under turbo — 191% was measured on a machine sustaining boost — so it must not
+// be clamped the way utilisation percentages are.  Clamping here would silently
+// report every boosting CPU as running at its base clock.
+func effectiveMHz(baseMHz uint64, perfPct float64) float64 {
+	if baseMHz == 0 || perfPct <= 0 {
+		return 0
+	}
+	return float64(baseMHz) * perfPct / 100.0
+}
+
 func collectCPUFallback() (CPUSnapshot, error) {
 	var (
 		perCore    []float64

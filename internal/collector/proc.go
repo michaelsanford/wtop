@@ -12,10 +12,30 @@ import (
 
 const maxProcs = 128
 
+// ioRate converts a pair of cumulative per-process transfer counters into a
+// bytes-per-second rate.  It mirrors netRate but takes the signed counters the
+// NT process table reports.
+//
+// Per-process counters are monotonic for the lifetime of a process, so cur < prev
+// only happens when a PID was recycled between ticks and the create-time guard
+// did not catch it; clamp to zero rather than emitting a negative rate.
+func ioRate(cur, prev int64, elapsed float64) float64 {
+	if elapsed <= 0 || cur < prev {
+		return 0
+	}
+	return float64(cur-prev) / elapsed
+}
+
 func collectProcs() ([]ProcSnapshot, error) {
 	return collectProcsNative()
 }
 
+// collectProcsFallback is the portable path.  It deliberately leaves ReadBps and
+// WriteBps at zero: gopsutil's per-process IOCounters opens and closes a handle
+// for every PID (OpenProcess + GetProcessIoCounters + CloseHandle), which is
+// three syscalls per process per tick and returns Access Denied for protected
+// and system processes anyway.  The Windows path gets the same counters for free
+// out of the NT process table, so paying that cost here would buy nothing.
 func collectProcsFallback() ([]ProcSnapshot, error) {
 	procs, err := process.Processes()
 	if err != nil {

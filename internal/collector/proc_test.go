@@ -219,3 +219,40 @@ func TestCompareNativeVsFallback(t *testing.T) {
 	}
 	t.Logf("Mismatched PPIDs: %d", mismatchedPPID)
 }
+
+// ioRate mirrors netRate for the signed per-process transfer counters, so it is
+// held to the same guarantees: never negative, never a divide-by-zero, and never
+// a fabricated rate when the counter moves backwards.
+func TestIORate(t *testing.T) {
+	tests := []struct {
+		name          string
+		cur, prev     int64
+		elapsed, want float64
+	}{
+		{"steady one second", 2000, 1000, 1, 1000},
+		{"half second doubles the rate", 2000, 1000, 0.5, 2000},
+		{"no change", 1000, 1000, 1, 0},
+		{"first tick has no baseline", 500, 0, 1, 500},
+		{"counter went backwards", 500, 1000, 1, 0},
+		{"zero elapsed", 2000, 1000, 0, 0},
+		{"negative elapsed", 2000, 1000, -1, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ioRate(tt.cur, tt.prev, tt.elapsed); got != tt.want {
+				t.Errorf("ioRate(%d, %d, %v) = %v, want %v", tt.cur, tt.prev, tt.elapsed, got, tt.want)
+			}
+		})
+	}
+}
+
+// A recycled PID can present a counter far below the previous tick's. Clamping
+// matters more here than for network counters: these are int64 and a wrapped
+// subtraction would surface as a nonsense petabyte-per-second row at the top of
+// a disk-sorted process list.
+func TestIORate_PIDReuseDoesNotProduceAbsurdRate(t *testing.T) {
+	const plausibleCeiling = 1e12 // 1 TB/s — far above any real device
+	if got := ioRate(1000, 1<<62, 1); got > plausibleCeiling {
+		t.Errorf("recycled PID produced %g B/s; the delta was not clamped", got)
+	}
+}
