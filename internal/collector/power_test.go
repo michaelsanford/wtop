@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"math"
 	"testing"
 	"time"
 )
@@ -123,5 +124,41 @@ func TestEffectiveMHz_TurboExceedsBase(t *testing.T) {
 	base := uint64(2700)
 	if got := effectiveMHz(base, 191.57); got <= float64(base) {
 		t.Errorf("turbo reported %v MHz, at or below the %d MHz base — the percentage was clamped", got, base)
+	}
+}
+
+// time.Duration counts int64 nanoseconds and saturates a little past 292 years.
+// The uptime counter comes from outside the process, so a wild value must yield
+// no uptime rather than wrapping into a negative one.
+func TestScaleDuration(t *testing.T) {
+	tests := []struct {
+		name string
+		n    uint64
+		unit time.Duration
+		want time.Duration
+		ok   bool
+	}{
+		{"zero", 0, time.Second, 0, true},
+		{"typical uptime", 289_540, time.Second, 289_540 * time.Second, true},
+		{"milliseconds", 1500, time.Millisecond, 1500 * time.Millisecond, true},
+		{"largest representable", uint64(math.MaxInt64) / uint64(time.Second), time.Second,
+			time.Duration(math.MaxInt64/int64(time.Second)) * time.Second, true},
+		{"one tick too far", uint64(math.MaxInt64)/uint64(time.Second) + 1, time.Second, 0, false},
+		{"wildly out of range", math.MaxUint64, time.Second, 0, false},
+		{"zero unit", 5, 0, 0, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := scaleDuration(tt.n, tt.unit)
+			if ok != tt.ok {
+				t.Fatalf("ok = %v, want %v", ok, tt.ok)
+			}
+			if got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+			if got < 0 {
+				t.Errorf("produced a negative duration: %v", got)
+			}
+		})
 	}
 }

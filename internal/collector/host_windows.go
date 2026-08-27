@@ -20,6 +20,9 @@ func collectHostNative() HostSnapshot {
 	if ms == 0 {
 		return collectHostFallback()
 	}
-	up := time.Duration(ms) * time.Millisecond
+	up, ok := scaleDuration(uint64(ms), time.Millisecond)
+	if !ok {
+		return collectHostFallback()
+	}
 	return HostSnapshot{Uptime: up, BootTime: time.Now().Add(-up)}
 }
