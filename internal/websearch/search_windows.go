@@ -85,11 +85,14 @@ func configuredSearchTemplate(prof chromiumProfile) string {
 
 	prefsPath := filepath.Join(root, "Preferences")
 	if !prof.flat {
-		state, _ := os.ReadFile(filepath.Join(root, "Local State")) //nolint:errcheck // absent Local State means the Default profile
+		// Both paths are composed from a fixed table entry under a directory named
+		// by the environment, never from anything the process list supplies.
+		//nolint:errcheck,gosec // G304: an absent Local State just means the Default profile
+		state, _ := os.ReadFile(filepath.Join(root, "Local State"))
 		prefsPath = filepath.Join(root, parseActiveProfile(state), "Preferences")
 	}
 
-	prefs, err := os.ReadFile(prefsPath) //nolint:gosec // a fixed path under the user's own profile directory
+	prefs, err := os.ReadFile(prefsPath) //nolint:gosec // G304: see above
 	if err != nil {
 		return ""
 	}
