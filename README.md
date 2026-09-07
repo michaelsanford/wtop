@@ -36,6 +36,7 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 - **Disk** — per-physical-disk read/write throughput and busy percentage from PDH, plus capacity bars for each fixed volume. Virtual filesystems that masquerade as fixed drives (Google Drive and the like) are filtered out by reconciling against the real physical disks, so you do not get a phantom copy of `C:`
 - **Process list** — high-performance native Windows NT single-syscall collection; flat or htop-style tree view (`t`) with full process hierarchies; sortable by CPU%, memory, PID, name, or disk read/write; kill selected process
 - **Per-process disk I/O** — `DISK R` / `DISK W` columns showing per-process read and write rates (shown when the terminal is 120+ columns wide). The counters come out of the same single system call that already collects the process list, so they cost no extra syscalls
+- **Web search** — `?` looks the selected process up in your default browser, on whatever search engine that browser is set to (read from the browser's own profile, so a Chrome or Edge set to DuckDuckGo searches DuckDuckGo, not Google or Bing). A child process is searched with its nearest differently-named ancestor for context, so a bare `msedgewebview2.exe` becomes `GoogleDriveFS.exe msedgewebview2.exe` and you find out which app is actually hosting it
 - **Self-ancestry marker** — a `◆` marks `wtop` itself and the terminal session hosting it (the shells and terminal host above it), so you can see the monitor's own cost and avoid killing your session by mistake. Those processes stay in the list even when idle. The walk stops below the session root — `explorer.exe` parents nearly everything interactive, so marking it would say nothing
 
 ## Keyboard shortcuts
@@ -43,13 +44,15 @@ A self-contained, single-binary terminal system monitor for Windows, inspired by
 | Key            | Action                                        |
 |----------------|-----------------------------------------------|
 | `q` / `Ctrl+C` | Quit                                          |
-| `↑` / `↓`      | Scroll process list                           |
+| `↑` / `↓`, `k` / `j` | Scroll process list                     |
 | `s`            | Cycle sort column (CPU% → MEM MB → PID → Name → DISK R → DISK W) |
 | `d`            | Invert sort order                             |
 | `t`            | Toggle tree view (htop-style parent → child)  |
 | `x`            | Kill selected process (confirmation required) |
+| `?`            | Search the selected process on the web        |
 | `g`            | Cycle GPUs (if multiple)                      |
 | `i`            | Cycle the I/O panel (GPU → Network → Disk)    |
+| `y` / `n`, `Esc` | Confirm / cancel a pending kill             |
 
 ## Layout
 

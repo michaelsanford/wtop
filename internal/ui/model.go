@@ -15,6 +15,7 @@ import (
 	"github.com/michaelsanford/wtop/internal/collector"
 	"github.com/michaelsanford/wtop/internal/ui/panels"
 	"github.com/michaelsanford/wtop/internal/version"
+	"github.com/michaelsanford/wtop/internal/websearch"
 )
 
 func stripANSI(s string) string {
@@ -83,6 +84,8 @@ type killResultMsg struct {
 	pid int32
 	err error
 }
+
+type searchResultMsg struct{ err error }
 
 // Model is the root Bubble Tea model.
 type Model struct {
@@ -163,6 +166,12 @@ func killCmd(pid int32) tea.Cmd {
 	}
 }
 
+func searchCmd(query string) tea.Cmd {
+	return func() tea.Msg {
+		return searchResultMsg{err: websearch.Search(query)}
+	}
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -204,6 +213,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case killResultMsg:
+		return m, tea.Batch(cmds...)
+
+	case searchResultMsg:
+		// Surfaced in the status bar rather than dropped: a failed launch opens no
+		// window, so without this the key looks dead.  The next snapshot clears it.
+		if msg.err != nil {
+			m.lastErr = msg.err
+		}
 		return m, tea.Batch(cmds...)
 
 	case tea.KeyMsg:
@@ -257,18 +274,38 @@ func (m Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case key.Matches(msg, m.keys.Kill):
-		rows := m.tbl.Rows()
-		cur := m.tbl.Cursor()
-		if cur >= 0 && cur < len(rows) {
-			row := rows[cur]
-			var pid int32
-			if _, err := fmt.Sscanf(row[0], "%d", &pid); err == nil {
-				m.confirming = true
-				m.confirm = confirmState{pid: pid, name: row[1]}
+		if pid, row, ok := m.selectedRow(); ok {
+			m.confirming = true
+			m.confirm = confirmState{pid: pid, name: row[1]}
+		}
+
+	case key.Matches(msg, m.keys.Search):
+		// The name is taken from the snapshot, not row[1]: the rendered cell
+		// carries the tree prefix and the self marker.
+		if pid, _, ok := m.selectedRow(); ok {
+			if q := searchQuery(m.snap.Procs, pid); q != "" {
+				return m, searchCmd(q)
 			}
 		}
 	}
 	return m, nil
+}
+
+// selectedRow returns the PID and the rendered cells of the highlighted row.
+// The PID is parsed back out of the rendered cell because the table cursor is
+// the only selection state the model keeps.
+func (m Model) selectedRow() (int32, table.Row, bool) {
+	rows := m.tbl.Rows()
+	cur := m.tbl.Cursor()
+	if cur < 0 || cur >= len(rows) {
+		return 0, nil, false
+	}
+	row := rows[cur]
+	var pid int32
+	if _, err := fmt.Sscanf(row[0], "%d", &pid); err != nil {
+		return 0, nil, false
+	}
+	return pid, row, true
 }
 
 func (m Model) handleConfirmKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -361,10 +398,16 @@ func (m Model) statusBar() string {
 	if m.treeView {
 		treeHint = "  [t] tree●"
 	}
+	searchHint := ""
+	if m.width >= 100 {
+		// Gated at 100 for the same reason as ioHint: at 90 the left cluster is
+		// already ~78 cells and another hint closes the gap to the right cluster.
+		searchHint = "  [?] search"
+	}
 
 	var hint string
 	if m.width >= 90 {
-		hint = fmt.Sprintf("[q] quit  [↑↓/jk] scroll  [s] %s  [d] invert  [x] kill%s%s%s", sortLabel, gpuHint, ioHint, treeHint)
+		hint = fmt.Sprintf("[q] quit  [↑↓/jk] scroll  [s] %s  [d] invert  [x] kill%s%s%s%s", sortLabel, gpuHint, ioHint, treeHint, searchHint)
 	} else if m.width >= 70 {
 		hint = fmt.Sprintf("[q] quit  [s] %s  [d] inv  [x] kill%s%s%s", sortLabel, gpuHint, ioHint, treeHint)
 	} else {

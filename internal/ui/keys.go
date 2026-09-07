@@ -12,6 +12,7 @@ type KeyMap struct {
 	CycleIO    key.Binding
 	Tree       key.Binding
 	Kill       key.Binding
+	Search     key.Binding
 	Confirm    key.Binding
 	Cancel     key.Binding
 	Quit       key.Binding
@@ -49,6 +50,10 @@ var defaultKeyMap = KeyMap{
 	Kill: key.NewBinding(
 		key.WithKeys("x"),
 		key.WithHelp("x", "kill process"),
+	),
+	Search: key.NewBinding(
+		key.WithKeys("?"),
+		key.WithHelp("?", "search web"),
 	),
 	Confirm: key.NewBinding(
 		key.WithKeys("y"),
