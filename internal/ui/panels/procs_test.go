@@ -467,3 +467,31 @@ func TestBuildTreeRows_Live(t *testing.T) {
 		}
 	}
 }
+
+func TestCaseFoldLess(t *testing.T) {
+	tests := []struct {
+		a, b string
+		want bool
+	}{
+		{"a", "b", true},
+		{"b", "a", false},
+		{"a", "a", false},
+		{"A", "b", true},
+		{"a", "B", true},
+		{"Apple", "apple", false},
+		{"apple", "Apple", false},
+		{"Apple", "banana", true},
+		{"banana", "Apple", false},
+		{"", "a", true},
+		{"a", "", false},
+		{"", "", false},
+		{"test.exe", "test.EXE", false},
+		{"test1.exe", "test2.exe", true},
+	}
+	for _, tc := range tests {
+		got := CaseFoldLess(tc.a, tc.b)
+		if got != tc.want {
+			t.Errorf("CaseFoldLess(%q, %q) = %v, want %v", tc.a, tc.b, got, tc.want)
+		}
+	}
+}

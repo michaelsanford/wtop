@@ -269,3 +269,14 @@ func TestTruncate_DoesNotSplitRunesOrCountEscapes(t *testing.T) {
 		t.Errorf("zero budget: %q, want empty", got)
 	}
 }
+
+func TestGPUNameLine_NarrowAndUnicode(t *testing.T) {
+	// Must not panic on narrow widths, high total counts, or non-ASCII characters
+	for _, inner := range []int{0, 1, 2, 3, 5, 10, 20, 40} {
+		for _, total := range []int{0, 1, 2, 10, 100} {
+			_ = gpuNameLine("NVIDIA GeForce RTX™ 4090", 0, total, inner)
+			_ = gpuNameLine("GPU (integrated)", 0, total, inner)
+			_ = gpuNameLine("", 0, total, inner)
+		}
+	}
+}

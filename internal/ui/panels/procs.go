@@ -3,7 +3,6 @@ package panels
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
@@ -319,7 +318,7 @@ func sortTreeNodes(nodes []*treeNode, sortBy int, ascending bool) {
 		case 2:
 			less = a.PID < b.PID
 		case 3:
-			less = strings.ToLower(a.Name) < strings.ToLower(b.Name)
+			less = CaseFoldLess(a.Name, b.Name)
 		case 4:
 			less = a.ReadBps < b.ReadBps
 		case 5:
@@ -332,4 +331,22 @@ func sortTreeNodes(nodes []*treeNode, sortBy int, ascending bool) {
 		}
 		return !less
 	})
+}
+
+// CaseFoldLess compares two ASCII/UTF-8 strings case-insensitively without heap allocations.
+func CaseFoldLess(a, b string) bool {
+	n := min(len(a), len(b))
+	for i := 0; i < n; i++ {
+		ca, cb := a[i], b[i]
+		if ca >= 'A' && ca <= 'Z' {
+			ca += 'a' - 'A'
+		}
+		if cb >= 'A' && cb <= 'Z' {
+			cb += 'a' - 'A'
+		}
+		if ca != cb {
+			return ca < cb
+		}
+	}
+	return len(a) < len(b)
 }

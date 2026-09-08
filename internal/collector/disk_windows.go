@@ -124,13 +124,19 @@ func collectDisksNative() []DiskSnapshot {
 		if !ok || idx == totalDiskIndex {
 			continue // the _Total row is an aggregate, not a device
 		}
+		busyPct := 0.0
+		if idles != nil {
+			if idleVal, ok := idles[inst]; ok {
+				busyPct = diskBusyPct(idleVal)
+			}
+		}
 		out = append(out, DiskSnapshot{
 			Instance:         inst,
 			Index:            idx,
 			Volumes:          vols,
 			ReadBytesPerSec:  rd,
 			WriteBytesPerSec: writes[inst],
-			BusyPct:          diskBusyPct(idles[inst]),
+			BusyPct:          busyPct,
 		})
 	}
 	return out
