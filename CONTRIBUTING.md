@@ -30,7 +30,7 @@ cmd/wtop  ──►  internal/ui  ──►  internal/collector
 ## Development Setup
 
 ### Prerequisites
-* **Go 1.26+**
+* **Go 1.27+**
 * **Windows 10 / 11** (AMD64 or ARM64)
 * **PowerShell 7+** (Recommended)
 
@@ -75,6 +75,38 @@ $env:GOOS="windows"
 # Run linter (golangci-lint v2)
 golangci-lint run
 ```
+
+### The Go and golangci-lint pins move together
+
+Every workflow resolves its toolchain with `go-version-file: go.mod`, so the `go` directive in
+`go.mod` **is** the CI Go version — raising it raises CI's toolchain too.
+
+This matters because **golangci-lint fails open when it is older than the Go it is linting**. A
+linter built against an older toolchain cannot typecheck the newer standard library: it writes
+`typechecking error: ... could not import math/rand/v2` to stderr and then reports `0 issues`. That
+reads as a clean run while nothing has actually been linted, and it is how a `gosec` G304 finding
+once reached CI after a local run reported no problems.
+
+So when you change the `go` directive in `go.mod`, in the same commit:
+
+1. Bump the `golangci-lint` pin in `.github/workflows/ci.yml` to a release built against that Go.
+2. Update the three places that state the minimum version: the badge and the "Requires Go" line in
+   `README.md`, and the **Prerequisites** section above.
+3. Prove the linter still lints, rather than trusting `0 issues`. Drop a file with a known violation
+   into a package, confirm it is reported, then delete it:
+
+   ```go
+   package somepkg
+
+   import "os"
+
+   func canary(p string) []byte { b, _ := os.ReadFile(p); return b } // must trip gosec G304
+   ```
+
+   An exit code of `0` accompanied by typechecking errors on stderr means the run was worthless.
+
+Current pairing: **Go 1.27.0** with **golangci-lint v2.13.2** (v2.12.2 cannot typecheck a Go 1.27
+standard library).
 
 ---
 

@@ -8,7 +8,7 @@
 [![WinGet Package](https://img.shields.io/badge/winget-michaelsanford.wtop-0078d7?logo=windows&logoColor=white)](https://github.com/microsoft/winget-pkgs/tree/master/manifests/m/MichaelSanford/wtop)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078d7?logo=windows&logoColor=white)](https://github.com/michaelsanford/wtop/releases)
 
-[![Go](https://img.shields.io/badge/go-1.26%2B-00ADD8?logo=go&logoColor=white)](go.mod)
+[![Go](https://img.shields.io/badge/go-1.27%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-4caf50)](https://github.com/michaelsanford/wtop/releases)
 [![Signed](https://img.shields.io/badge/signed-Sigstore-3f51b5)](https://github.com/michaelsanford/wtop/releases)
 [![Attestation](https://img.shields.io/badge/attestation-GitHub-24292e?logo=github&logoColor=white)](https://github.com/michaelsanford/wtop/attestations)
@@ -105,7 +105,7 @@ Both are needed to file a useful false-positive report with Microsoft.
 
 ## Build from source
 
-Requires Go 1.26+.
+Requires Go 1.27+.
 
 ```powershell
 go build -o wtop.exe ./cmd/wtop/
