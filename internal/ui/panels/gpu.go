@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/michaelsanford/wtop/internal/collector"
 )
 
@@ -97,9 +98,9 @@ func gpuNameLine(name string, idx, total, inner int) string {
 	if label == "" {
 		label = "GPU (integrated)"
 	}
-	maxName := inner - len(indicator)
-	if len(label) > maxName {
-		label = label[:maxName-3] + "..."
+	maxName := inner - ansi.StringWidth(indicator)
+	if maxName > 0 {
+		label = truncate(label, maxName)
 	}
 	nameStr := lipgloss.NewStyle().Foreground(colorWhite).Render(label)
 	if indicator == "" {

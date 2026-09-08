@@ -385,8 +385,8 @@ func getDxgiGPUs() ([]GPUSnapshot, error) {
 		}
 
 		var desc dxgiAdapterDesc1
-		// IDXGIAdapter1::GetDesc1 is vtable index 11
-		r = callVirtualMethod(adapter, 11, uintptr(unsafe.Pointer(&desc)))
+		// IDXGIAdapter1::GetDesc1 is vtable index 10 (IUnknown: 0-2, IDXGIObject: 3-6, IDXGIAdapter: 7-9, IDXGIAdapter1: 10)
+		r = callVirtualMethod(adapter, 10, uintptr(unsafe.Pointer(&desc)))
 		if r == 0 {
 			// Skip software adapters (DXGI_ADAPTER_FLAG_SOFTWARE = 2)
 			if desc.Flags&2 == 0 {

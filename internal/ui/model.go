@@ -712,9 +712,9 @@ func buildSortedRows(procs []collector.ProcSnapshot, sortBy SortField, ascending
 	case SortByName:
 		sort.Slice(sorted, func(i, j int) bool {
 			if ascending {
-				return sorted[i].Name < sorted[j].Name
+				return panels.CaseFoldLess(sorted[i].Name, sorted[j].Name)
 			}
-			return sorted[i].Name > sorted[j].Name
+			return panels.CaseFoldLess(sorted[j].Name, sorted[i].Name)
 		})
 	case SortByDiskR:
 		sort.Slice(sorted, func(i, j int) bool {
