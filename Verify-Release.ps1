@@ -12,7 +12,11 @@
     Release tag to verify. Default: latest published release.
 
 .PARAMETER Force
-    Re-download assets even if they already exist in downloads/.
+    Re-download assets even if they already exist in downloads/<tag>/.
+
+.PARAMETER Clean
+    Delete the entire downloads/ cache before doing anything else, then carry
+    on with the requested verification.
 
 .PARAMETER WinGet
     Instead of downloading the release, validate the binary that winget
@@ -31,13 +35,15 @@
     .\verify-release.ps1 -Tag v0.5.0
     .\verify-release.ps1 -WinGet
     .\verify-release.ps1 -WinGet -Version v1.1.0
+    .\verify-release.ps1 -Clean
 #>
 param(
     [string]$Repo    = "michaelsanford/wtop",
     [string]$Tag     = "",
     [switch]$Force,
     [switch]$WinGet,
-    [string]$Version = ""
+    [string]$Version = "",
+    [switch]$Clean
 )
 
 Set-StrictMode -Version Latest
@@ -60,6 +66,24 @@ function Write-Header([string]$msg) {
     Write-Host ""
     Write-Host $msg -ForegroundColor White
     Write-Host ("─" * [Math]::Max($msg.Length, 60)) -ForegroundColor DarkGray
+}
+
+# ── Download cache ────────────────────────────────────────────────────────────
+# Assets live in downloads/<tag>/ so a run for one release can never pick up
+# another release's files. Verifying two releases in turn used to fail: the
+# binary and SBOM globs match the whole directory, so a stale v1.1.0 exe was
+# checked against a v1.3.0 cosign identity and reported [FAIL] on a release
+# that was in fact sound.
+$downloadRoot = Join-Path $PSScriptRoot "downloads"
+
+if ($Clean) {
+    Write-Header "Cleaning download cache"
+    if (Test-Path $downloadRoot) {
+        Remove-Item -Path $downloadRoot -Recurse -Force -Confirm:$false
+        Write-Pass "Removed $downloadRoot"
+    } else {
+        Write-Info "Nothing to remove: $downloadRoot does not exist"
+    }
 }
 
 # ── Prerequisite check ────────────────────────────────────────────────────────
@@ -329,9 +353,9 @@ $Tag     = $release.tagName
 Write-Pass "Release: $Tag  ($($release.assets.Count) assets)"
 
 # ── Download assets ───────────────────────────────────────────────────────────
-Write-Header "Downloading assets to downloads/"
+Write-Header "Downloading assets to downloads/$Tag/"
 
-$downloadDir = Join-Path $PSScriptRoot "downloads"
+$downloadDir = Join-Path $downloadRoot $Tag
 New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
 
 foreach ($asset in $release.assets) {
@@ -354,7 +378,7 @@ $binaries = Get-ChildItem $downloadDir -Filter "*.exe" | Sort-Object Name
 $sbomFile = Get-ChildItem $downloadDir -Filter "*-sbom.cdx.json" | Select-Object -First 1
 
 if ($binaries.Count -eq 0) {
-    Write-Fail "No .exe binaries found in downloads/"
+    Write-Fail "No .exe binaries found in downloads/$Tag/"
     exit 1
 }
 
