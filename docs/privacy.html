@@ -240,7 +240,7 @@
   <div class="page-header">
     <div class="badge">Zero Telemetry</div>
     <h1>Privacy Policy</h1>
-    <div class="last-updated">Last Updated: August 8, 2026</div>
+    <div class="last-updated">Last Updated: September 8, 2026</div>
   </div>
 
   <p>This Privacy Policy outlines the privacy and data protection practices for <strong>wtop</strong> ("we", "us", or "our", maintained by <a href="https://github.com/michaelsanford">Michael Sanford</a>) concerning the <code>wtop</code> software utility, its GitHub repository, and documentation.</p>
@@ -269,6 +269,7 @@
       <li><strong>No Analytics or Telemetry:</strong> There is no telemetry framework, crash-reporting daemon, or tracking code in the binary.</li>
       <li><strong>Local System APIs:</strong> All system counters (CPU utilization, physical memory, GPU statistics, network I/O, process lists, and execution priority) are read exclusively from local Windows kernel APIs (PDH, DXGI, Win32).</li>
       <li><strong>No External Socket Egress:</strong> The application does not initiate outbound network connections to any external servers or tracking endpoints.</li>
+      <li><strong>User-Initiated Web Search:</strong> Pressing <code>?</code> launches your existing default browser on that browser&rsquo;s own default search engine, with the selected process name (and, for a child process, its nearest differently-named ancestor) as the query. <code>wtop</code> opens no connection and sends nothing itself &mdash; the request is made by your browser, at your explicit keypress, and is governed by that search engine&rsquo;s privacy policy. No search is ever performed unprompted.</li>
       <li><strong>Volatile Memory Only:</strong> All metrics reside solely in transient RAM to render the terminal interface and are immediately purged when the application exits.</li>
     </ul>
   </div>

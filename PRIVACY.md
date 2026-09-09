@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last Updated:** August 8, 2026
+**Last Updated:** September 8, 2026
 
 This Privacy Policy explains how **wtop** ("we", "us", or "our", maintained by [Michael Sanford](https://github.com/michaelsanford)) handles information in connection with the `wtop` software application and its associated GitHub repository and documentation.
 
@@ -21,6 +21,7 @@ When you run `wtop.exe` on your computer:
 - **No Analytics / Telemetry**: There is zero tracking code, telemetry collection, or remote analytics reporting.
 - **Local Operation**: System metrics (CPU utilisation, physical memory, GPU usage, network I/O, process lists, and execution priority) are read strictly from local Windows operating system APIs (such as PDH, DXGI, and Win32 process APIs) directly in system RAM.
 - **No Network Egress**: The application does not initiate outbound network connections to any external servers or telemetry endpoints.
+- **User-Initiated Web Search**: Pressing `?` launches your existing default browser on your browser's own default search engine, with the selected process name (and, for a child process, its nearest differently-named ancestor) as the query. `wtop` itself opens no connection and sends nothing; the request is made by your browser, at your explicit keypress, and is subject to that search engine's privacy policy. No search is ever performed without one.
 - **Volatile Processing**: All metrics exist solely in transient memory for the purpose of rendering the terminal user interface (TUI) and are immediately discarded upon exiting the application.
 
 ---
