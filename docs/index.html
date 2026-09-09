@@ -403,7 +403,7 @@
   <h1>wtop</h1>
   <p class="hero-sub">
     A <strong>self-contained, single-binary</strong> system monitor for Windows —
-    inspired by htop. CPU, memory, GPU, network, and processes. Live. In your terminal.
+    inspired by htop. CPU, memory, GPU, disk, network, and processes. Live. In your terminal.
   </p>
   <div class="hero-install">
     <div class="hero-install-label">Latest stable release</div>
@@ -435,7 +435,7 @@
     <a href="https://github.com/michaelsanford/wtop/releases" class="chip chip-green">
       <span class="chip-dot" style="background:var(--green)"></span>MIT
     </a>
-    <a href="https://go.dev" class="chip chip-blue">Go 1.26+</a>
+    <a href="https://go.dev" class="chip chip-blue">Go 1.27+</a>
     <a href="https://github.com/michaelsanford/wtop/releases" class="chip chip-gray">
       amd64 &middot; arm64
     </a>
@@ -467,7 +467,7 @@
   <div class="container">
     <div class="s-label">Capabilities</div>
     <h2>Everything at a glance</h2>
-    <p class="s-intro">Six panels, one binary. Live metrics updated every second across every subsystem that matters.</p>
+    <p class="s-intro">One binary. Live metrics updated every second across every subsystem that matters.</p>
     <div class="feat-grid">
       <div class="feat">
         <div class="feat-icon fi-g">▓</div>
@@ -509,6 +509,12 @@
         <div class="feat-icon fi-b">▤</div>
         <h3>Disk</h3>
         <p>Per-physical-disk read and write throughput with a busy percentage, straight from PDH, plus a capacity bar for every fixed volume. Virtual filesystems that present themselves as fixed drives &mdash; Google Drive mirrors the system drive&rsquo;s exact size &mdash; are reconciled away against the real physical disks, so no phantom copy of <code>C:</code> appears.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon fi-p">⌕</div>
+        <h3>Web search</h3>
+        <p><kbd>?</kbd> looks the selected process up in your default browser, on whatever search engine that browser is actually set to &mdash; read out of the browser&rsquo;s own profile, so a Chrome or Edge switched to DuckDuckGo searches DuckDuckGo rather than Google or Bing.</p>
+        <p>A child process is searched together with its nearest differently-named ancestor for context, so a bare <code>msedgewebview2.exe</code> becomes <code>GoogleDriveFS.exe msedgewebview2.exe</code> and you find out which application is really hosting it.</p>
       </div>
       <div class="feat">
         <div class="feat-icon fi-gg">◉</div>
@@ -554,8 +560,12 @@
           <td>Cycle between GPUs (when multiple are detected)</td>
         </tr>
         <tr>
-          <td><kbd>i</kbd></td>
+          <td class="td-keys"><kbd>i</kbd></td>
           <td>Cycle the I/O panel &mdash; GPU&thinsp;→&thinsp;Network&thinsp;→&thinsp;Disk</td>
+        </tr>
+        <tr>
+          <td class="td-keys"><kbd>?</kbd></td>
+          <td>Search the selected process on the web &mdash; opens your default browser on its own default search engine</td>
         </tr>
         <tr>
           <td class="td-keys"><kbd>x</kbd></td>
@@ -571,6 +581,22 @@
         </tr>
       </tbody>
     </table>
+    <h3 style="margin-top:3rem;">Responsive layout</h3>
+    <p class="s-intro">The panel row is Memory plus as many rotating panels as the terminal can hold. GPU, Network and Disk share those slots, and <kbd>i</kbd> pages through them.</p>
+    <table class="shortcut-table">
+      <thead>
+        <tr>
+          <th>Terminal width</th>
+          <th>Panel row</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="td-keys">below 110</td><td>Memory + one rotating panel</td></tr>
+        <tr><td class="td-keys">110 &ndash; 159</td><td>Memory + two rotating panels</td></tr>
+        <tr><td class="td-keys">160 and wider</td><td>Memory + all three; <kbd>i</kbd> is a no-op</td></tr>
+      </tbody>
+    </table>
+    <p class="s-intro" style="margin-top:1.5rem;">The process table has its own threshold: <code>DISK R</code> and <code>DISK W</code> appear at 120 columns and disappear together below it. Sorting by a hidden column still works &mdash; the status bar is the authoritative sort indicator.</p>
   </div>
 </section>
 
@@ -598,7 +624,7 @@
         </div>
       </div>
       <div>
-        <p class="col-label">Build from source (Go 1.26+ required):</p>
+        <p class="col-label">Build from source (Go 1.27+ required):</p>
         <div class="codeblock">
           <div class="codeblock-header">
             <span class="codeblock-lang">PowerShell</span>
