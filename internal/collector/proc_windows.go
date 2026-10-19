@@ -24,6 +24,11 @@ var (
 const (
 	systemProcessInformation = 5
 	statusInfoLengthMismatch = 0xC0000004
+
+	// maxProcBufSize bounds the process-table retry loop.  A few thousand
+	// processes need a few MB; anything past this means the loop is not
+	// converging, and failing one tick beats growing without limit.
+	maxProcBufSize = 64 << 20
 )
 
 type unicodeString struct {
@@ -121,6 +126,9 @@ func (pt *procTracker) collect() ([]ProcSnapshot, error) {
 			newSize := len(buf) * 2
 			if int(returnLength) > newSize {
 				newSize = int(returnLength) + 4096
+			}
+			if newSize > maxProcBufSize {
+				return nil, syscall.Errno(r)
 			}
 			buf = make([]byte, newSize)
 			pt.buf = buf

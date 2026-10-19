@@ -29,8 +29,18 @@ type cpuTracker struct {
 	buf       []byte
 }
 
+// cpuInfoSize is the size of one per-core entry.  The processor-performance class
+// rejects any buffer length that is not a whole number of entries with
+// STATUS_INFO_LENGTH_MISMATCH — padding the buffer "for safety" makes every call
+// fail — so the buffer is always sized in multiples of this.
+const cpuInfoSize = int(unsafe.Sizeof(systemProcessorPerformanceInformationStruct{}))
+
+// maxCPUBufCores bounds the retry loop.  It is far above any real machine and
+// keeps the buffer under 200 KB if the kernel ever keeps answering "mismatch".
+const maxCPUBufCores = 4096
+
 var globalCPUTracker = &cpuTracker{
-	buf: make([]byte, runtime.NumCPU()*int(unsafe.Sizeof(systemProcessorPerformanceInformationStruct{}))+4096),
+	buf: make([]byte, runtime.NumCPU()*cpuInfoSize),
 }
 
 func collectCPUNative() (CPUSnapshot, error) {
@@ -54,20 +64,25 @@ func (ct *cpuTracker) collect() (CPUSnapshot, error) {
 		if r == 0 {
 			break
 		}
-		if r == uintptr(statusInfoLengthMismatch) || int(returnLength) > len(buf) {
-			newSize := len(buf) * 2
-			if int(returnLength) > newSize {
-				newSize = int(returnLength) + 4096
-			}
-			buf = make([]byte, newSize)
-			ct.buf = buf
-			continue
+		if r != uintptr(statusInfoLengthMismatch) {
+			return CPUSnapshot{}, syscall.Errno(r)
 		}
-		return CPUSnapshot{}, syscall.Errno(r)
+		// Trust the kernel's size when it is a whole number of entries;
+		// otherwise double the entry count.  Either way stay on a multiple of
+		// cpuInfoSize, or the next call fails the same way.
+		newSize := 2 * len(buf)
+		if rl := int(returnLength); rl > len(buf) && rl%cpuInfoSize == 0 {
+			newSize = rl
+		}
+		newSize = (newSize + cpuInfoSize - 1) / cpuInfoSize * cpuInfoSize
+		if newSize > maxCPUBufCores*cpuInfoSize {
+			return CPUSnapshot{}, syscall.Errno(r)
+		}
+		buf = make([]byte, newSize)
+		ct.buf = buf
 	}
 
-	elemSize := int(unsafe.Sizeof(systemProcessorPerformanceInformationStruct{}))
-	numCores := int(returnLength) / elemSize
+	numCores := int(returnLength) / cpuInfoSize
 	if numCores == 0 {
 		return CPUSnapshot{}, nil
 	}
