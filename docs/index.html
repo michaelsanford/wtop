@@ -24,365 +24,330 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:           #0d1117;
-      --surface:      #161b22;
-      --surface-2:    #1c2128;
-      --border:       #30363d;
-      --border-sub:   #21262d;
-      --accent:       #58a6ff;
-      --green:        #3fb950;
-      --purple:       #bc8cff;
-      --orange:       #e3b341;
-      --red:          #f85149;
-      --text:         #e6edf3;
-      --muted:        #8b949e;
-      --subtle:       #484f58;
-      --sans:         -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      --mono:         'Cascadia Code', 'Cascadia Mono', 'Consolas', 'JetBrains Mono', ui-monospace, monospace;
-      --r:            8px;
-      --r-lg:         14px;
+      color-scheme: dark;
+      --deep:      #0c0c0c;   /* terminal background, matches wtop.png */
+      --bg:        #111113;
+      --surface:   #18181a;
+      --raised:    #222225;
+      --line:      rgba(237,237,237,.08);
+      --line-2:    rgba(237,237,237,.14);
+      --text:      #ededed;
+      --text-2:    #a1a1a6;
+      --muted:     #85858b;
+      --accent:    #3fb950;   /* terminal meter green */
+      --accent-hi: #56c463;
+      --on-accent: #0c0c0c;
+      --sans:      'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono:      'Cascadia Code', 'Cascadia Mono', 'Consolas', 'JetBrains Mono', ui-monospace, monospace;
+      --ease:      cubic-bezier(.22, 1, .36, 1);
+      --fast:      150ms;
     }
 
-    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-behavior: smooth; }
+    }
 
     body {
       background: var(--bg);
       color: var(--text);
       font-family: var(--sans);
       font-size: 16px;
-      line-height: 1.6;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
     }
 
     a { color: inherit; }
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px;
+    }
+    .icon {
+      width: 16px; height: 16px; flex-shrink: 0;
+      fill: none; stroke: currentColor; stroke-width: 1.5;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
 
     /* ── NAV ─────────────────────────────────────────── */
     nav {
       position: sticky; top: 0; z-index: 100;
-      background: rgba(13,17,23,.88);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border-sub);
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
     }
     .nav-inner {
-      max-width: 1100px; margin: 0 auto; padding: 0 2rem;
-      height: 56px; display: flex; align-items: center; justify-content: space-between;
+      max-width: 1100px; margin: 0 auto; padding: 0 32px;
+      height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 24px;
     }
     .nav-logo {
-      font-family: var(--mono); font-size: 1.05rem; font-weight: 600;
-      text-decoration: none; color: var(--text); letter-spacing: -.02em;
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 16px; font-weight: 500;
+      text-decoration: none; color: var(--text);
     }
-    .nav-logo .dollar { color: var(--green); }
-    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .mark { color: var(--accent); }
+    .nav-links { display: flex; gap: 24px; list-style: none; }
     .nav-links a {
-      color: var(--muted); text-decoration: none; font-size: .875rem;
-      transition: color .15s;
+      color: var(--text-2); text-decoration: none; font-size: 14px;
+      transition: color var(--fast) var(--ease);
     }
-    .nav-links a:hover { color: var(--text); }
+    .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--text); }
     .nav-gh {
-      display: inline-flex; align-items: center; gap: .35rem;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--r); padding: .3rem .75rem;
-      font-size: .8rem; text-decoration: none; color: var(--muted);
-      transition: border-color .15s, color .15s;
+      display: inline-flex; align-items: center; gap: 8px; height: 32px;
+      border: 1px solid var(--line-2); border-radius: 8px; padding: 0 12px;
+      font-size: 13px; text-decoration: none; color: var(--text-2);
+      transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease);
     }
     .nav-gh:hover { border-color: var(--muted); color: var(--text); }
 
     /* ── HERO ────────────────────────────────────────── */
-    .hero {
-      padding: 6rem 2rem 3.5rem; text-align: center;
-      position: relative; overflow: hidden;
+    .hero { max-width: 1100px; margin: 0 auto; padding: 96px 32px 64px; }
+    .hero-grid {
+      display: grid; grid-template-columns: minmax(0, 1fr) 400px;
+      gap: 64px; align-items: center;
     }
-    .hero::before {
-      content: ''; position: absolute; top: -40%; left: 50%;
-      transform: translateX(-50%);
-      width: 900px; height: 600px;
-      background: radial-gradient(ellipse at 50% 40%,
-        rgba(88,166,255,.09) 0%, rgba(188,140,255,.05) 40%, transparent 70%);
-      pointer-events: none;
-    }
-    .eyebrow {
-      display: inline-flex; align-items: center; gap: .45rem;
-      font-family: var(--mono); font-size: .72rem; letter-spacing: .08em;
-      text-transform: uppercase; color: var(--green);
-      background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.2);
-      border-radius: 100px; padding: .25rem .85rem; margin-bottom: 1.75rem;
-    }
-    .eyebrow::before { content: '▶'; font-size: .55rem; }
-
     h1 {
-      font-family: var(--mono); font-weight: 700;
-      font-size: clamp(4rem, 10vw, 8rem);
-      letter-spacing: -.05em; line-height: 1;
-      margin-bottom: 1.25rem;
-      background: linear-gradient(160deg, #e6edf3 40%, #6e7680);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-weight: 500; font-size: clamp(40px, 5.6vw, 64px);
+      line-height: 1.05; letter-spacing: -.03em;
+      margin-bottom: 20px; max-width: 15ch;
     }
-
     .hero-sub {
-      font-size: 1.15rem; color: var(--muted);
-      max-width: 500px; margin: 0 auto 2.75rem; line-height: 1.75;
+      font-size: 18px; line-height: 28px; color: var(--text-2);
+      max-width: 36rem; margin-bottom: 32px;
     }
-    .hero-sub strong { color: var(--text); }
-
-    /* hero install — preferred latest stable release */
-    .hero-install {
-      max-width: 420px; margin: 0 auto 1.75rem; text-align: left;
-    }
-    .hero-install-label {
-      display: flex; align-items: center; gap: .45rem;
-      font-family: var(--mono); font-size: .72rem; letter-spacing: .06em;
-      text-transform: uppercase; color: var(--green);
-      margin-bottom: .55rem; justify-content: center;
-    }
-    .hero-install-label::before { content: '⚡'; }
-    .hero-install .codeblock { text-align: left; }
-    .hero-install pre {
-      display: flex; align-items: center; gap: .5rem;
-      padding: .9rem 1.15rem; font-family: var(--mono); font-size: .9rem;
-      line-height: 1.5; overflow-x: auto; color: var(--text);
-    }
-    .hero-install pre::before { content: '❯'; color: var(--green); }
-
-    .hero-actions {
-      display: flex; gap: .75rem; justify-content: center;
-      flex-wrap: wrap; margin-bottom: 2.75rem;
-    }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
     .btn {
-      display: inline-flex; align-items: center; gap: .45rem;
-      padding: .65rem 1.35rem; border-radius: var(--r);
-      font-size: .95rem; font-weight: 500; text-decoration: none;
-      transition: transform .15s, box-shadow .15s, background .15s, border-color .15s;
+      display: inline-flex; align-items: center; gap: 8px;
+      height: 44px; padding: 0 20px; border-radius: 8px;
+      font-size: 15px; font-weight: 500; text-decoration: none;
+      border: 1px solid transparent;
+      transition: background-color var(--fast) var(--ease), border-color var(--fast) var(--ease), transform var(--fast) var(--ease);
     }
-    .btn-primary {
-      background: var(--accent); color: #0d1117;
-    }
-    .btn-primary:hover {
-      background: #79b8ff;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(88,166,255,.3);
-    }
-    .btn-secondary {
-      background: var(--surface); color: var(--text);
-      border: 1px solid var(--border);
-    }
-    .btn-secondary:hover {
-      background: var(--surface-2); border-color: var(--muted);
-      transform: translateY(-2px);
-    }
+    .btn:active { transform: scale(.98); }
+    .btn-primary { background: var(--accent); color: var(--on-accent); }
+    .btn-primary:hover { background: var(--accent-hi); }
+    .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--line-2); }
+    .btn-secondary:hover { background: var(--raised); }
+    #latest-version { font-variant-numeric: tabular-nums; }
 
-    /* chips */
-    .chips { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
-    .chip {
-      display: inline-flex; align-items: center; gap: .3rem;
-      padding: .2rem .65rem; border-radius: 100px;
-      font-size: .72rem; font-family: var(--mono); letter-spacing: .01em;
-      border: 1px solid; text-decoration: none; transition: opacity .15s;
-    }
-    .chip:hover { opacity: .75; }
-    .chip-dot {
-      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-    }
-    .chip-blue   { color: var(--accent);  border-color: rgba(88,166,255,.25);  background: rgba(88,166,255,.06); }
-    .chip-green  { color: var(--green);   border-color: rgba(63,185,80,.25);   background: rgba(63,185,80,.06); }
-    .chip-purple { color: var(--purple);  border-color: rgba(188,140,255,.25); background: rgba(188,140,255,.06); }
-    .chip-orange { color: var(--orange);  border-color: rgba(227,179,65,.25);  background: rgba(227,179,65,.06); }
-    .chip-gray   { color: var(--muted);   border-color: var(--border);         background: rgba(139,148,158,.04); }
+    .hero-install-label { font-size: 13px; line-height: 20px; color: var(--text-2); margin-bottom: 8px; }
+    .hero-install pre { display: flex; gap: 8px; font-size: 14px; line-height: 20px; padding: 16px; }
+    .hero-install pre::before { content: '❯'; color: var(--accent); }
 
-    /* ── SCREENSHOT ──────────────────────────────────── */
-    .screenshot-wrap {
-      max-width: 1020px; margin: 0 auto 7rem; padding: 0 1.5rem;
+    .meta {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+      margin-top: 40px; font-family: var(--mono); font-size: 13px; line-height: 20px;
+      color: var(--muted); font-variant-numeric: tabular-nums;
     }
+    .meta a { color: var(--text-2); text-decoration: none; transition: color var(--fast) var(--ease); }
+    .meta a:hover { color: var(--text); }
+    .meta .sep { color: var(--line-2); }
+
+    /* ── TERMINAL WINDOW ─────────────────────────────── */
+    .screenshot-wrap { max-width: 1100px; margin: 0 auto 96px; padding: 0 32px; }
     .terminal {
-      border: 1px solid var(--border); border-radius: var(--r-lg);
-      overflow: hidden;
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.03),
-        0 8px 32px rgba(0,0,0,.4),
-        0 32px 80px rgba(0,0,0,.5);
+      background: var(--deep);
+      border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,.5);
     }
     .terminal-bar {
-      display: flex; align-items: center; gap: .5rem;
-      padding: .7rem 1rem;
-      background: var(--surface-2);
-      border-bottom: 1px solid var(--border-sub);
+      display: flex; align-items: flex-end; height: 40px;
+      background: var(--surface); padding-left: 8px;
+      font-size: 12px; color: var(--text-2);
     }
-    .tl { width: 12px; height: 12px; border-radius: 50%; }
-    .tl-r { background: #ff5f57; }
-    .tl-y { background: #febc2e; }
-    .tl-g { background: #28c840; }
-    .terminal-title {
-      flex: 1; text-align: center;
-      font-family: var(--mono); font-size: .75rem; color: var(--subtle);
-      margin-right: 44px;
+    .wt-tab {
+      display: flex; align-items: center; gap: 8px;
+      height: 32px; padding: 0 12px; min-width: 200px;
+      background: var(--deep); border-radius: 8px 8px 0 0; color: var(--text);
     }
-    .terminal img {
-      display: block; width: 100%; height: auto;
-    }
+    .wt-tab .title { flex: 1; font-family: var(--mono); }
+    .wt-tab .icon { width: 12px; height: 12px; color: var(--muted); }
+    .wt-new { display: flex; align-items: center; gap: 4px; height: 32px; padding: 0 12px; color: var(--muted); }
+    .wt-new .icon { width: 12px; height: 12px; }
+    .wt-caption { display: flex; margin-left: auto; align-self: stretch; }
+    .wt-caption span { width: 46px; display: flex; align-items: center; justify-content: center; color: var(--text-2); }
+    .wt-caption .icon { width: 10px; height: 10px; stroke-width: 1; }
+    .terminal img { display: block; width: 100%; height: auto; }
 
     /* ── SHARED SECTION CHROME ───────────────────────── */
-    section { padding: 5.5rem 2rem; border-top: 1px solid var(--border-sub); }
+    section { padding: 96px 32px; border-top: 1px solid var(--line); }
     .container { max-width: 1100px; margin: 0 auto; }
     .s-label {
-      font-family: var(--mono); font-size: .72rem; color: var(--accent);
-      letter-spacing: .1em; text-transform: uppercase; margin-bottom: .6rem;
+      font-family: var(--mono); font-size: 13px; line-height: 20px;
+      color: var(--muted); margin-bottom: 8px;
     }
     h2 {
-      font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 700;
-      letter-spacing: -.03em; margin-bottom: .9rem; line-height: 1.2;
+      font-size: clamp(28px, 3vw, 32px); font-weight: 500;
+      letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px;
     }
     .s-intro {
-      color: var(--muted); font-size: 1.025rem;
-      max-width: 540px; margin-bottom: 3rem; line-height: 1.75;
+      color: var(--text-2); font-size: 16px; line-height: 26px;
+      max-width: 36rem; margin-bottom: 40px;
+    }
+    .sub-h { font-size: 20px; font-weight: 500; line-height: 28px; margin: 64px 0 12px; }
+    .s-note { color: var(--text-2); font-size: 15px; line-height: 24px; max-width: 44rem; margin-top: 24px; }
+    code {
+      font-family: var(--mono); font-size: .86em;
+      background: var(--raised); color: var(--text);
+      padding: 2px 6px; border-radius: 4px;
     }
 
     /* ── FEATURES ────────────────────────────────────── */
     .feat-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1px; background: var(--border-sub);
-      border: 1px solid var(--border-sub);
-      border-radius: var(--r-lg); overflow: hidden;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; background: var(--line);
+      border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
     }
-    @media (max-width: 800px) { .feat-grid { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 520px) { .feat-grid { grid-template-columns: 1fr; } }
-
-    .feat {
-      background: var(--bg); padding: 2rem 1.75rem;
-      transition: background .15s;
+    .feat { background: var(--bg); padding: 24px; }
+    .feat.wide { grid-column: span 2; }
+    .feat h3 {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 500; line-height: 20px; margin-bottom: 8px;
     }
-    .feat:hover { background: #0f1318; }
-    .feat-icon {
-      width: 38px; height: 38px; border-radius: var(--r);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; margin-bottom: 1.1rem;
+    .feat h3 .icon { color: var(--muted); }
+    .feat p { font-size: 14px; line-height: 22px; color: var(--text-2); }
+    .feat p + p { margin-top: 12px; }
+    @media (max-width: 800px) {
+      .feat-grid { grid-template-columns: 1fr 1fr; }
+      .feat.wide { grid-column: span 2; }
     }
-    .fi-g  { background: rgba(63,185,80,.1);  border: 1px solid rgba(63,185,80,.22); }
-    .fi-b  { background: rgba(88,166,255,.1); border: 1px solid rgba(88,166,255,.22); }
-    .fi-p  { background: rgba(188,140,255,.1);border: 1px solid rgba(188,140,255,.22); }
-    .fi-o  { background: rgba(227,179,65,.1); border: 1px solid rgba(227,179,65,.22); }
-    .fi-r  { background: rgba(248,81,73,.1);  border: 1px solid rgba(248,81,73,.22); }
-    .fi-gg { background: rgba(63,185,80,.07); border: 1px solid rgba(63,185,80,.15); }
-
-    .feat h3 { font-size: .95rem; font-weight: 600; margin-bottom: .45rem; }
-    .feat p   { font-size: .875rem; color: var(--muted); line-height: 1.65; }
-    .feat code {
-      font-family: var(--mono); font-size: .82em;
-      background: var(--surface-2); color: var(--accent);
-      padding: .1em .35em; border-radius: 3px;
+    @media (max-width: 520px) {
+      .feat-grid { grid-template-columns: 1fr; }
+      .feat.wide { grid-column: auto; }
     }
 
     /* ── SHORTCUTS ───────────────────────────────────── */
-    .shortcut-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-    .shortcut-table thead tr { border-bottom: 1px solid var(--border); }
+    .shortcut-table { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums; }
+    .shortcut-table thead tr { border-bottom: 1px solid var(--line-2); }
     .shortcut-table th {
-      text-align: left; padding: .7rem 1rem;
-      font-size: .72rem; font-weight: 600; letter-spacing: .08em;
-      text-transform: uppercase; color: var(--subtle);
+      text-align: left; padding: 12px 16px;
+      font-size: 13px; font-weight: 400; color: var(--muted);
     }
     .shortcut-table td {
-      padding: .7rem 1rem;
-      border-bottom: 1px solid var(--border-sub);
-      color: var(--muted);
-      vertical-align: middle;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      color: var(--text-2); vertical-align: middle;
     }
     .shortcut-table tr:last-child td { border-bottom: none; }
-    .shortcut-table tr:hover td { background: rgba(255,255,255,.02); }
-    .shortcut-table .td-keys { white-space: nowrap; width: 1%; }
+    .shortcut-table tbody tr { transition: background-color var(--fast) var(--ease); }
+    .shortcut-table tbody tr:hover { background: var(--surface); }
+    .shortcut-table .td-keys { white-space: nowrap; width: 1%; color: var(--text); }
 
     kbd {
-      font-family: var(--mono); font-size: .78rem;
-      background: var(--surface-2); color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 4px; padding: .15em .5em;
-      white-space: nowrap;
-      box-shadow: 0 1px 0 var(--border);
+      display: inline-block; min-width: 24px; text-align: center;
+      font-family: var(--mono); font-size: 13px; line-height: 20px;
+      background: var(--raised); color: var(--text);
+      border: 1px solid var(--line-2); border-bottom-color: rgba(237,237,237,.22);
+      border-radius: 4px; padding: 0 6px; white-space: nowrap;
     }
 
-    /* ── INSTALL ─────────────────────────────────────── */
-    .install-cols {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
-    }
-    @media (max-width: 680px) { .install-cols { grid-template-columns: 1fr; } }
-    .col-label {
-      font-size: .8rem; color: var(--muted); margin-bottom: .6rem;
-    }
+    /* ── CODE BLOCKS ─────────────────────────────────── */
     .codeblock {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--r); overflow: hidden;
+      background: var(--deep);
+      border: 1px solid var(--line-2);
+      border-radius: 8px; overflow: hidden;
     }
     .codeblock-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: .45rem 1rem;
-      background: var(--surface-2); border-bottom: 1px solid var(--border-sub);
+      display: flex; align-items: center; height: 32px; padding: 0 16px;
+      background: var(--surface); border-bottom: 1px solid var(--line);
     }
-    .codeblock-lang {
-      font-family: var(--mono); font-size: .68rem; color: var(--subtle);
-      text-transform: uppercase; letter-spacing: .08em;
-    }
+    .codeblock-lang { font-family: var(--mono); font-size: 12px; color: var(--muted); }
     .codeblock pre {
-      padding: 1.25rem; font-family: var(--mono); font-size: .83rem;
-      line-height: 1.75; overflow-x: auto; color: var(--text);
+      padding: 20px; font-family: var(--mono); font-size: 13px;
+      line-height: 24px; overflow-x: auto; color: var(--text);
     }
-    .tok-c  { color: var(--subtle); }
-    .tok-k  { color: var(--accent); }
-    .tok-s  { color: var(--green); }
-    .tok-v  { color: var(--purple); }
-    .tok-ok { color: var(--green); }
+    .tok-c  { color: var(--muted); }
+    .tok-k  { color: var(--text); }
+    .tok-s  { color: var(--text-2); }
+    .tok-ok { color: var(--accent); }
     .tok-m  { color: var(--muted); }
+    .stack > * + * { margin-top: 16px; }
+
+    /* ── INSTALL ─────────────────────────────────────── */
+    .install-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 40px; }
+    @media (max-width: 680px) { .install-cols { grid-template-columns: minmax(0, 1fr); } }
+    .col-label { font-size: 14px; line-height: 20px; color: var(--text-2); margin-bottom: 8px; }
+    .col-label a, .s-note a, .sec-card a { color: var(--text); text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; transition: text-decoration-color var(--fast) var(--ease); }
+    .col-label a:hover, .s-note a:hover, .sec-card a:hover { text-decoration-color: var(--text); }
 
     /* ── SECURITY ────────────────────────────────────── */
     .sec-cards {
       display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 1rem; margin-bottom: 2.5rem;
+      gap: 16px; margin-bottom: 48px;
     }
     @media (max-width: 720px) { .sec-cards { grid-template-columns: 1fr; } }
-
     .sec-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--r); padding: 1.5rem;
-      display: flex; gap: 1rem; align-items: flex-start;
-      transition: border-color .15s, transform .15s;
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 12px; padding: 24px;
     }
-    .sec-card:hover { border-color: var(--muted); transform: translateY(-2px); }
-    .sec-card-icon { font-size: 1.4rem; flex-shrink: 0; }
-    .sec-card h3 { font-size: .92rem; font-weight: 600; margin-bottom: .35rem; }
-    .sec-card p  { font-size: .845rem; color: var(--muted); line-height: 1.65; }
-    .sec-card a  { color: var(--accent); text-decoration: none; }
-    .sec-card a:hover { text-decoration: underline; }
-    .sec-card code {
-      font-family: var(--mono); font-size: .8em; color: var(--orange);
+    .sec-card h3 {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 500; line-height: 20px; margin-bottom: 8px;
     }
+    .sec-card h3 .icon { color: var(--muted); }
+    .sec-card h3 a { text-decoration: none; }
+    .sec-card h3 a:hover { text-decoration: underline; }
+    .sec-card p { font-size: 14px; line-height: 22px; color: var(--text-2); }
 
     /* ── FOOTER ──────────────────────────────────────── */
-    footer { padding: 2.5rem 2rem; border-top: 1px solid var(--border-sub); }
+    footer { padding: 40px 32px; border-top: 1px solid var(--line); }
     .footer-inner {
       max-width: 1100px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 1rem;
+      flex-wrap: wrap; gap: 16px;
     }
-    .footer-left { font-family: var(--mono); font-size: .83rem; color: var(--muted); }
-    .footer-left a { color: var(--accent); text-decoration: none; }
-    .footer-right { display: flex; gap: 1.5rem; list-style: none; }
-    .footer-right a { color: var(--muted); text-decoration: none; font-size: .83rem; transition: color .15s; }
+    .footer-left { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+    .footer-left a { color: var(--text-2); text-decoration: none; }
+    .footer-left a:hover { color: var(--text); }
+    .footer-right { display: flex; flex-wrap: wrap; gap: 8px 24px; list-style: none; }
+    .footer-right a { color: var(--text-2); text-decoration: none; font-size: 13px; transition: color var(--fast) var(--ease); }
     .footer-right a:hover { color: var(--text); }
 
-    /* ── MISC ────────────────────────────────────────── */
+    /* ── RESPONSIVE ──────────────────────────────────── */
+    @media (max-width: 960px) {
+      .hero-grid { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+      .hero-install { max-width: 480px; }
+    }
     @media (max-width: 580px) {
+      .nav-inner { padding: 0 16px; }
       .nav-links { display: none; }
-      .hero { padding: 4rem 1.25rem 2.5rem; }
-      section { padding: 3.5rem 1.25rem; }
-      .screenshot-wrap { padding: 0 1rem; margin-bottom: 4rem; }
+      .hero { padding: 48px 16px 40px; }
+      section { padding: 64px 16px; }
+      footer { padding: 32px 16px; }
+      .screenshot-wrap { padding: 0 16px; margin-bottom: 64px; }
+      .wt-tab { min-width: 0; }
+      .wt-new { display: none; }
+      .wt-caption span { width: 32px; }
     }
   </style>
 </head>
 <body>
 
+<!-- Inline icon set (lucide, ISC licence) — inline so the CSP needs no img/font source -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></symbol>
+  <symbol id="i-memory" viewBox="0 0 24 24"><path d="M6 19v-3M10 19v-3M14 19v-3M18 19v-3M8 11V9M16 11V9M12 11V9M2 15h20"/><path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-network" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3M12 12V8"/></symbol>
+  <symbol id="i-tree" viewBox="0 0 24 24"><path d="M21 12h-8M21 6H8M21 18h-8M3 6v4c0 1.1.9 2 2 2h3M3 10v6c0 1.1.9 2 2 2h3"/></symbol>
+  <symbol id="i-disk-io" viewBox="0 0 24 24"><path d="M12 2v8M16 6l-4 4-4-4"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 18h.01M10 18h.01"/></symbol>
+  <symbol id="i-battery" viewBox="0 0 24 24"><rect width="16" height="10" x="2" y="7" rx="2"/><path d="M22 11v2M6 11v2M10 11v2"/></symbol>
+  <symbol id="i-disk" viewBox="0 0 24 24"><path d="M22 12H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11zM6 16h.01M10 16h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12M3.3 7 12 12l8.7-5M7.5 4.27l9 5.15"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6M12 19h8"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5h10"/></symbol>
+  <symbol id="i-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0 0 10"/></symbol>
+</svg>
+
 <!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a class="nav-logo" href="#"><span class="dollar">$</span>&nbsp;wtop</a>
+    <a class="nav-logo" href="#"><span class="mark" aria-hidden="true">◆</span>wtop</a>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
       <li><a href="#shortcuts">Shortcuts</a></li>
@@ -392,133 +357,121 @@
     </ul>
     <a class="nav-gh" href="https://github.com/michaelsanford/wtop">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-      GitHub ↗
+      GitHub
     </a>
   </div>
 </nav>
 
 <!-- HERO -->
-<section class="hero" style="border-top:none; padding-bottom:0;">
-  <div class="eyebrow">Windows system monitor</div>
-  <h1>wtop</h1>
-  <p class="hero-sub">
-    A <strong>self-contained, single-binary</strong> system monitor for Windows —
-    inspired by htop. CPU, memory, GPU, disk, network, and processes. Live. In your terminal.
-  </p>
-  <div class="hero-install">
-    <div class="hero-install-label">Latest stable release</div>
-    <div class="codeblock">
-      <div class="codeblock-header">
-        <span class="codeblock-lang">PowerShell</span>
+<header class="hero">
+  <div class="hero-grid">
+    <div>
+      <h1>A system monitor for the Windows terminal</h1>
+      <p class="hero-sub">
+        One self-contained binary, inspired by htop. CPU, memory, GPU, disk, network and processes, updated every second.
+      </p>
+      <div class="hero-actions">
+        <a id="dl-btn" href="https://github.com/michaelsanford/wtop/releases/latest" class="btn btn-primary">
+          <svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>
+          Download <span id="latest-version">latest release</span>
+        </a>
+        <a href="https://github.com/michaelsanford/wtop" class="btn btn-secondary">View on GitHub</a>
       </div>
-      <pre><span class="tok-k">winget</span> install michaelsanford.wtop</pre>
+    </div>
+    <div class="hero-install">
+      <p class="hero-install-label">Latest stable release</p>
+      <div class="codeblock">
+        <div class="codeblock-header">
+          <span class="codeblock-lang">PowerShell</span>
+        </div>
+        <pre><span class="tok-k">winget</span> install michaelsanford.wtop</pre>
+      </div>
     </div>
   </div>
-  <div class="hero-actions">
-    <a id="dl-btn" href="https://github.com/michaelsanford/wtop/releases/latest" class="btn btn-secondary">
-      ↓&nbsp; Download <span id="latest-version">Latest Release</span>
-    </a>
-    <a href="https://github.com/michaelsanford/wtop" class="btn btn-secondary">
-      View on GitHub
-    </a>
+  <div class="meta">
+    <span class="mark" aria-hidden="true">◆</span>
+    <a href="https://github.com/michaelsanford/wtop/releases"><span id="download-count">400+ downloads</span></a>
+    <span class="sep" aria-hidden="true">·</span>
+    <a href="https://github.com/michaelsanford/wtop/blob/main/LICENSE">MIT</a>
+    <span class="sep" aria-hidden="true">·</span>
+    <a href="https://github.com/michaelsanford/wtop/releases">amd64 + arm64</a>
+    <span class="sep" aria-hidden="true">·</span>
+    <a href="https://go.dev">Go 1.27+</a>
   </div>
-  <div class="chips">
-    <a href="https://github.com/michaelsanford/wtop/releases" class="chip chip-green">
-      <span class="chip-dot" style="background:var(--green)"></span><span id="download-count">400+ downloads</span>
-    </a>
-    <a href="https://github.com/microsoft/winget-pkgs/tree/master/manifests/m/MichaelSanford/wtop" class="chip chip-blue">
-      winget &middot; michaelsanford.wtop
-    </a>
-    <a href="https://github.com/michaelsanford/wtop/actions/workflows/ci.yml" class="chip chip-blue">
-      <span class="chip-dot" style="background:var(--accent)"></span>CI
-    </a>
-    <a href="https://github.com/michaelsanford/wtop/releases" class="chip chip-green">
-      <span class="chip-dot" style="background:var(--green)"></span>MIT
-    </a>
-    <a href="https://go.dev" class="chip chip-blue">Go 1.27+</a>
-    <a href="https://github.com/michaelsanford/wtop/releases" class="chip chip-gray">
-      amd64 &middot; arm64
-    </a>
-    <a href="https://github.com/michaelsanford/wtop/attestations" class="chip chip-purple">
-      <span class="chip-dot" style="background:var(--purple)"></span>Attested
-    </a>
-    <a href="https://sigstore.dev" class="chip chip-green">Sigstore</a>
-    <a href="https://github.com/michaelsanford/wtop/releases" class="chip chip-orange">CycloneDX SBOM</a>
-  </div>
-</section>
+</header>
 
 <!-- SCREENSHOT -->
-<div class="screenshot-wrap" style="margin-top:4rem;">
+<div class="screenshot-wrap">
   <div class="terminal">
-    <div class="terminal-bar">
-      <div class="tl tl-r"></div>
-      <div class="tl tl-y"></div>
-      <div class="tl tl-g"></div>
-      <span class="terminal-title">Windows PowerShell &mdash; wtop.exe</span>
+    <div class="terminal-bar" aria-hidden="true">
+      <div class="wt-tab">
+        <svg class="icon"><use href="#i-terminal"/></svg>
+        <span class="title">wtop.exe</span>
+        <svg class="icon"><use href="#i-x"/></svg>
+      </div>
+      <div class="wt-new">
+        <svg class="icon"><use href="#i-plus"/></svg>
+        <svg class="icon"><use href="#i-chevron"/></svg>
+      </div>
+      <div class="wt-caption">
+        <span><svg class="icon"><use href="#i-min"/></svg></span>
+        <span><svg class="icon"><use href="#i-max"/></svg></span>
+        <span><svg class="icon"><use href="#i-close"/></svg></span>
+      </div>
     </div>
     <img src="wtop.png"
          alt="wtop screenshot showing CPU grid, memory bars, GPU panel, and a sortable process tree in which a ◆ marks the processes that exist only to run and display wtop itself"
-         width="1000" loading="lazy" decoding="async">
+         width="1705" height="1286" decoding="async" fetchpriority="high">
   </div>
 </div>
 
 <!-- FEATURES -->
 <section id="features">
   <div class="container">
-    <div class="s-label">Capabilities</div>
-    <h2>Everything at a glance</h2>
-    <p class="s-intro">One binary. Live metrics updated every second across every subsystem that matters.</p>
+    <p class="s-label">Features</p>
+    <h2>Every subsystem on one screen</h2>
+    <p class="s-intro">One binary, with live metrics refreshed every second.</p>
     <div class="feat-grid">
       <div class="feat">
-        <div class="feat-icon fi-g">▓</div>
-        <h3>CPU</h3>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-cpu"/></svg>CPU</h3>
         <p>Per-core utilisation bars in a compact grid. Colour-coded green&thinsp;→&thinsp;yellow&thinsp;→&thinsp;red as load climbs. Aggregate total always pinned at the bottom.</p>
       </div>
       <div class="feat">
-        <div class="feat-icon fi-b">▒</div>
-        <h3>Memory</h3>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-memory"/></svg>Memory</h3>
         <p>RAM and swap in GiB with htop-style colour layering — used, cached, and buffered pages each in a distinct colour so you know exactly where memory is going.</p>
       </div>
       <div class="feat">
-        <div class="feat-icon fi-p">◈</div>
-        <h3>GPU</h3>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg>GPU</h3>
         <p>Automatic detection: full telemetry (util, VRAM, temp, power, clocks, fan, P-state) from NVIDIA via in-process NVML with zero subprocess overhead (falling back to DXGI, PDH, or <code>nvidia-smi</code>), or utilisation from AMD/Intel via PDH.</p>
       </div>
       <div class="feat">
-        <div class="feat-icon fi-o">↕</div>
-        <h3>Network</h3>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-network"/></svg>Network</h3>
         <p>Per-interface send/receive rates in real time via direct <code>GetIfTable2</code>. Loopback and zero-traffic interfaces hidden automatically. Delta-per-second calculation handles clock resets cleanly.</p>
       </div>
-      <div class="feat">
-        <div class="feat-icon fi-r">☰</div>
-        <h3>Process list</h3>
+      <div class="feat wide">
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-tree"/></svg>Process list</h3>
         <p>High-performance native single-syscall Windows NT query. Top processes sortable by CPU%, memory, PID, name, or disk read/write. Toggle an htop-style tree view (<kbd>t</kbd>) to see full parent&thinsp;→&thinsp;child relationships with box-drawing connectors across the entire system. Kill any selected process with a confirmation step.</p>
         <p>A <code>◆</code> marks <code>wtop</code> itself and the terminal session hosting it &mdash; the shells and terminal host above it &mdash; so the monitor's own cost is visible and your session is hard to kill by accident. Those processes stay pinned in the list even when idle. The chain stops below the session root: <code>explorer.exe</code> parents nearly everything interactive, so marking it would say nothing.</p>
       </div>
       <div class="feat">
-        <div class="feat-icon fi-r">⇅</div>
-        <h3>Per-process disk I/O</h3>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-disk-io"/></svg>Per-process disk I/O</h3>
         <p><code>DISK R</code> and <code>DISK W</code> columns show what each process is actually reading and writing, and the list sorts by either. The transfer counters arrive in the same single system call that already collects the process list, so the columns cost no additional syscalls. They appear once the terminal is 120 columns wide.</p>
       </div>
       <div class="feat">
-        <div class="feat-icon fi-b">◑</div>
-        <h3>Battery, uptime &amp; clock</h3>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-battery"/></svg>Battery, uptime &amp; clock</h3>
         <p>The status bar carries AC or battery state, charge, estimated time remaining and battery-saver mode, plus system uptime and the true effective CPU clock including turbo. On a desktop with no battery the power field is omitted rather than left blank. The fields thin out in priority order as the terminal narrows &mdash; the charge state is the last of them to go.</p>
       </div>
       <div class="feat">
-        <div class="feat-icon fi-b">▤</div>
-        <h3>Disk</h3>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-disk"/></svg>Disk</h3>
         <p>Per-physical-disk read and write throughput with a busy percentage, straight from PDH, plus a capacity bar for every fixed volume. Virtual filesystems that present themselves as fixed drives &mdash; Google Drive mirrors the system drive&rsquo;s exact size &mdash; are reconciled away against the real physical disks, so no phantom copy of <code>C:</code> appears.</p>
       </div>
-      <div class="feat">
-        <div class="feat-icon fi-p">⌕</div>
-        <h3>Web search</h3>
+      <div class="feat wide">
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Web search</h3>
         <p><kbd>?</kbd> looks the selected process up in your default browser, on whatever search engine that browser is actually set to &mdash; read out of the browser&rsquo;s own profile, so a Chrome or Edge switched to DuckDuckGo searches DuckDuckGo rather than Google or Bing.</p>
         <p>A child process is searched together with its nearest differently-named ancestor for context, so a bare <code>msedgewebview2.exe</code> becomes <code>GoogleDriveFS.exe msedgewebview2.exe</code> and you find out which application is really hosting it.</p>
       </div>
       <div class="feat">
-        <div class="feat-icon fi-gg">◉</div>
-        <h3>Zero dependencies</h3>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-package"/></svg>Zero dependencies</h3>
         <p>Single statically-linked binary with no installer, no runtime, and no admin rights to run. CGO-free. Just download <code>wtop.exe</code> and go.</p>
       </div>
     </div>
@@ -528,9 +481,9 @@
 <!-- SHORTCUTS -->
 <section id="shortcuts">
   <div class="container">
-    <div class="s-label">Keyboard</div>
-    <h2>Navigate at the speed of thought</h2>
-    <p class="s-intro">Every action is one keypress away. No mouse. No menus.</p>
+    <p class="s-label">Keyboard</p>
+    <h2>Keyboard shortcuts</h2>
+    <p class="s-intro">Every action is one keypress. No mouse, no menus.</p>
     <table class="shortcut-table">
       <thead>
         <tr>
@@ -581,7 +534,7 @@
         </tr>
       </tbody>
     </table>
-    <h3 style="margin-top:3rem;">Responsive layout</h3>
+    <h3 class="sub-h">Responsive layout</h3>
     <p class="s-intro">The panel row is Memory plus as many rotating panels as the terminal can hold. GPU, Network and Disk share those slots, and <kbd>i</kbd> pages through them.</p>
     <table class="shortcut-table">
       <thead>
@@ -596,25 +549,26 @@
         <tr><td class="td-keys">160 and wider</td><td>Memory + all three; <kbd>i</kbd> is a no-op</td></tr>
       </tbody>
     </table>
-    <p class="s-intro" style="margin-top:1.5rem;">The process table has its own threshold: <code>DISK R</code> and <code>DISK W</code> appear at 120 columns and disappear together below it. Sorting by a hidden column still works &mdash; the status bar is the authoritative sort indicator.</p>
+    <p class="s-note">The process table has its own threshold: <code>DISK R</code> and <code>DISK W</code> appear at 120 columns and disappear together below it. Sorting by a hidden column still works &mdash; the status bar is the authoritative sort indicator.</p>
   </div>
 </section>
 
 <!-- INSTALL -->
 <section id="install">
   <div class="container">
-    <div class="s-label">Get started</div>
-    <h2>Up and running in seconds</h2>
-    <p class="s-intro">Install with winget, or download a pre-built binary for amd64 and arm64. No installer. No admin rights.</p>
-    <div class="codeblock" style="margin-bottom:2rem;">
+    <p class="s-label">Get started</p>
+    <h2>Install</h2>
+    <p class="s-intro">Install with winget, or download a pre-built binary for amd64 and arm64. No installer, no admin rights.</p>
+    <div class="codeblock">
       <div class="codeblock-header">
         <span class="codeblock-lang">PowerShell</span>
       </div>
-      <pre>winget install michaelsanford.wtop</pre>
+      <pre><span class="tok-k">winget</span> install michaelsanford.wtop</pre>
     </div>
+    <p class="s-note">Published to winget as <a href="https://github.com/microsoft/winget-pkgs/tree/master/manifests/m/MichaelSanford/wtop">michaelsanford.wtop</a></p>
     <div class="install-cols">
       <div>
-        <p class="col-label">Or download the latest release and run directly:</p>
+        <p class="col-label">Or download the latest release and run it directly</p>
         <div class="codeblock">
           <div class="codeblock-header">
             <span class="codeblock-lang">PowerShell</span>
@@ -624,7 +578,7 @@
         </div>
       </div>
       <div>
-        <p class="col-label">Build from source (Go 1.27+ required):</p>
+        <p class="col-label">Build from source (Go 1.27+ required)</p>
         <div class="codeblock">
           <div class="codeblock-header">
             <span class="codeblock-lang">PowerShell</span>
@@ -642,30 +596,21 @@
 <!-- SECURITY -->
 <section id="security">
   <div class="container">
-    <div class="s-label">Supply chain</div>
+    <p class="s-label">Supply chain</p>
     <h2>Verify what you run</h2>
     <p class="s-intro">Every release is built reproducibly in GitHub Actions and ships with a complete audit trail.</p>
     <div class="sec-cards">
       <div class="sec-card">
-        <div class="sec-card-icon">📋</div>
-        <div>
-          <h3>CycloneDX SBOM</h3>
-          <p>Full dependency inventory in JSON format — <code>wtop-vX.Y.Z-sbom.cdx.json</code> — attached to every release.</p>
-        </div>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg><a href="https://github.com/michaelsanford/wtop/releases">CycloneDX SBOM</a></h3>
+        <p>Full dependency inventory in JSON format — <code>wtop-vX.Y.Z-sbom.cdx.json</code> — attached to every release.</p>
       </div>
       <div class="sec-card">
-        <div class="sec-card-icon">🔐</div>
-        <div>
-          <h3>Sigstore cosign</h3>
-          <p>Keyless signature via <a href="https://sigstore.dev">Sigstore</a>. A <code>.bundle</code> file ships with each binary for offline verification.</p>
-        </div>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-pen"/></svg><a href="https://sigstore.dev">Sigstore cosign</a></h3>
+        <p>Keyless signature via <a href="https://sigstore.dev">Sigstore</a>. A <code>.bundle</code> file ships with each binary for offline verification.</p>
       </div>
       <div class="sec-card">
-        <div class="sec-card-icon">🔗</div>
-        <div>
-          <h3>Build provenance</h3>
-          <p>GitHub Actions attestation links each binary to its exact source commit and workflow run. Verify with <code>gh attestation verify</code>.</p>
-        </div>
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg><a href="https://github.com/michaelsanford/wtop/attestations">Build provenance</a></h3>
+        <p>GitHub Actions attestation links each binary to its exact source commit and workflow run. Verify with <code>gh attestation verify</code>.</p>
       </div>
     </div>
     <div class="codeblock">
@@ -682,23 +627,24 @@
     --certificate-identity-regexp <span class="tok-s">"https://github.com/michaelsanford/wtop"</span> \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com</pre>
     </div>
-    <p class="col-label" style="margin-top:2rem;">Installed via winget? Verify the binary on disk in one command with <a href="https://github.com/michaelsanford/wtop/blob/main/Verify-Release.ps1">Verify-Release.ps1</a>:</p>
-    <div class="codeblock">
-      <div class="codeblock-header">
-        <span class="codeblock-lang">PowerShell &mdash; verify your winget-installed binary</span>
-      </div>
-      <pre><span class="tok-c"># Resolves the winget shim to the real binary and checks build</span>
+    <p class="col-label s-note">Installed via winget? Verify the binary on disk in one command with <a href="https://github.com/michaelsanford/wtop/blob/main/Verify-Release.ps1">Verify-Release.ps1</a></p>
+    <div class="stack">
+      <div class="codeblock">
+        <div class="codeblock-header">
+          <span class="codeblock-lang">PowerShell &mdash; verify your winget-installed binary</span>
+        </div>
+        <pre><span class="tok-c"># Resolves the winget shim to the real binary and checks build</span>
 <span class="tok-c"># provenance + cosign signature; version auto-detected from `winget show`.</span>
 .\Verify-Release.ps1 <span class="tok-s">-WinGet</span>
 
 <span class="tok-c"># Or pin the release version explicitly:</span>
 .\Verify-Release.ps1 <span class="tok-s">-WinGet</span> <span class="tok-s">-Version</span> v1.0.0</pre>
-    </div>
-    <div class="codeblock" style="margin-top:1rem;">
-      <div class="codeblock-header">
-        <span class="codeblock-lang">Example output</span>
       </div>
-      <pre>Checking prerequisites
+      <div class="codeblock">
+        <div class="codeblock-header">
+          <span class="codeblock-lang">Example output</span>
+        </div>
+        <pre>Checking prerequisites
 <span class="tok-c">────────────────────────────────────────────────────────────</span>
   <span class="tok-ok">[PASS] gh</span>
   <span class="tok-ok">[PASS] cosign (cosign-windows-amd64)</span>
@@ -731,6 +677,7 @@ Summary  —  v1.1.0  (winget install)
 <span class="tok-m">         SBOM Integrity     (skipped — not installed by winget)</span>
 
   <span class="tok-ok">winget-installed wtop v1.1.0 passed all verification checks.</span></pre>
+      </div>
     </div>
   </div>
 </section>
@@ -739,13 +686,13 @@ Summary  —  v1.1.0  (winget install)
 <footer>
   <div class="footer-inner">
     <div class="footer-left">
-      <span style="font-family:var(--mono)">wtop</span> &mdash; MIT &middot;
-      by <a href="https://github.com/michaelsanford">michaelsanford</a>
+      wtop &mdash; MIT &middot; by <a href="https://github.com/michaelsanford">michaelsanford</a>
     </div>
     <ul class="footer-right">
       <li><a href="https://github.com/michaelsanford/wtop">GitHub</a></li>
       <li><a href="https://github.com/michaelsanford/wtop/releases">Releases</a></li>
       <li><a href="https://github.com/michaelsanford/wtop/attestations">Attestations</a></li>
+      <li><a href="https://github.com/michaelsanford/wtop/actions/workflows/ci.yml">CI</a></li>
       <li><a href="privacy.html">Privacy</a></li>
       <li><a href="https://github.com/michaelsanford/wtop/blob/main/LICENSE">License</a></li>
     </ul>
@@ -760,7 +707,7 @@ fetch('https://api.github.com/repos/michaelsanford/wtop/releases')
     const latest = releases[0];
     if (latest && latest.tag_name) {
       const v = latest.tag_name;
-      document.getElementById('latest-version').textContent = 'Latest: ' + v;
+      document.getElementById('latest-version').textContent = v;
       document.getElementById('dl-btn').href = 'https://github.com/michaelsanford/wtop/releases/tag/' + v;
       document.querySelectorAll('pre').forEach(el => {
         el.innerHTML = el.innerHTML.replaceAll('v1.0.0', v);
